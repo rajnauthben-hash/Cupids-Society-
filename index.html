@@ -11,18 +11,18 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
 :root{
-  --bg:#FDFBFC;
+  --bg:#FFFFFF;
   --fg:#180C14;
-  --accent:#C2547A;
-  --petal:#F2C2D5;
-  --gold:#C9A05A;
-  --shell:#F9EEF3;
+  --accent:#F1BBD3;
+  --petal:#F1BBD3;
+  --gold:#F1BBD3;
+  --shell:#F1BBD3;
   --dim:rgba(24,12,20,.48);
   --border:rgba(24,12,20,.09);
   --cw:1280px;
 }
 
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;overflow-x:hidden;width:100%}
 
 body{
   font-family:'Jost',sans-serif;
@@ -58,7 +58,7 @@ button{font-family:'Jost',sans-serif}
 #site-header{position:fixed;top:0;left:0;right:0;z-index:1000;width:100%}
 
 /* LOGO BAR */
-.logo-bar{background:var(--bg);border-bottom:1px solid var(--border)}
+.logo-bar{background:var(--accent);border-bottom:1px solid var(--border)}
 .logo-bar-inner{max-width:var(--cw);margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(1.5rem,4vw,3rem);height:84px;position:relative}
 .hamburger{display:flex;flex-direction:column;gap:6px;cursor:pointer;padding:4px;background:none;border:none;flex-shrink:0;z-index:2}
 .hamburger span{display:block;width:26px;height:1px;background:var(--fg);border-radius:0;transition:all .3s}
@@ -109,27 +109,37 @@ button{font-family:'Jost',sans-serif}
 
 /* CATEGORY NAV */
 .cat-nav{background:var(--bg);border-bottom:1px solid var(--border)}
-.cat-inner{display:flex;overflow-x:auto;scrollbar-width:none;max-width:var(--cw);margin:0 auto}
+.cat-inner{display:flex;justify-content:center;overflow-x:auto;scrollbar-width:none;max-width:var(--cw);margin:0 auto;width:100%}
 .cat-inner::-webkit-scrollbar{display:none}
 .cat-inner button{padding:12px 20px;font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;color:var(--dim);border:none;background:none;border-bottom:1.5px solid transparent;flex-shrink:0;transition:all .2s;cursor:pointer;font-family:'Jost',sans-serif}
 .cat-inner button:hover,.cat-inner button.on{color:var(--fg);border-color:var(--accent)}
+.cat-drop{position:relative;display:flex}
+.cat-drop-panel{position:absolute;top:100%;left:50%;transform:translateX(-50%) translateY(4px);background:#fff;min-width:190px;box-shadow:0 16px 36px rgba(24,12,20,.14);opacity:0;visibility:hidden;transition:opacity .2s,transform .2s;z-index:60;padding:.4rem 0}
+.cat-drop:hover .cat-drop-panel{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+.cat-drop-panel a{display:block;padding:11px 22px;font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--fg);white-space:nowrap;transition:background .2s}
+.cat-drop-panel a:hover{background:var(--accent)}
 
 /* HERO */
-.hero{position:relative;height:100vh;min-height:620px;max-height:1080px;overflow:hidden}
-.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%}
-.hero-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(24,12,20,.82) 0%,rgba(24,12,20,.48) 40%,rgba(24,12,20,.18) 100%)}
+.hero{position:relative;height:100vh;min-height:620px;max-height:900px;overflow:hidden}
+@media(min-aspect-ratio:4/3){.hero{height:82vh;max-height:780px}}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 20%}
+.hero-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(24,12,20,.55) 0%,rgba(24,12,20,.15) 30%,rgba(24,12,20,0) 55%,rgba(24,12,20,.1) 80%,rgba(24,12,20,.35) 100%)}
 .hero-content{
   position:absolute;
   inset:0;
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:center;
+  justify-content:flex-start;
+  padding-top:clamp(3rem,9vh,7rem);
   text-align:center;
-  padding:0 clamp(1.5rem,5vw,4rem);
+  padding-left:clamp(1.5rem,5vw,4rem);
+  padding-right:clamp(1.5rem,5vw,4rem);
 }
 .hero-pill{
   display:block;
+  margin-top:1.5rem;
+  margin-bottom:0;
   font-size:9px;
   font-weight:500;
   letter-spacing:.4em;
@@ -144,13 +154,13 @@ button{font-family:'Jost',sans-serif}
 }
 .hero-h1{
   font-family:'Cormorant Garamond',serif;
-  font-size:clamp(5.5rem,16vw,14rem);
+  font-size:clamp(3.2rem,9vw,7.5rem);
   font-weight:300;
   font-style:italic;
   color:#fff;
   line-height:.95;
   letter-spacing:-.03em;
-  margin-bottom:3rem;
+  margin-bottom:2rem;
 }
 .hero-sc{display:none}
 .hero-btn{
@@ -168,22 +178,31 @@ button{font-family:'Jost',sans-serif}
 }
 .hero-btn:hover{background:#fff;color:var(--fg);border-color:#fff}
 
-/* VALUES BAR */
-.vals{background:var(--fg);padding:.85rem 0}
-.vals-inner{display:flex;justify-content:center;align-items:center;max-width:var(--cw);margin:0 auto;padding:0 2rem;flex-wrap:wrap;row-gap:.35rem;column-gap:0}
-.val{display:flex;align-items:center}
-.val-sym{display:none}
-.val-lbl{
-  font-size:8.5px;
-  font-weight:500;
-  letter-spacing:.28em;
-  text-transform:uppercase;
-  color:rgba(255,255,255,.38);
-  padding:0 1.6rem;
-  position:relative;
-}
-.val-lbl::before{content:'·';position:absolute;left:0;top:50%;transform:translateY(-50%);color:var(--accent);opacity:.9}
-.val:first-child .val-lbl::before{display:none}
+/* CATEGORY TILES */
+.cat-tiles{padding:0 0 clamp(3rem,6vw,5rem)}
+.tile-grid{max-width:var(--cw);margin:0 auto;padding:0 clamp(1.5rem,5vw,4rem);display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem}
+.tile{position:relative;border:none;background:none;cursor:pointer;padding:0;aspect-ratio:3/4;overflow:hidden}
+.tile img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+.tile:hover img{transform:scale(1.05)}
+.tile::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(24,12,20,.55) 0%,rgba(24,12,20,0) 55%)}
+.tile-lbl{position:absolute;left:1.1rem;bottom:1rem;z-index:2;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.3rem;color:#fff;font-weight:400}
+@media(max-width:768px){.tile-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* FEATURE STRIP */
+.feat-strip{background:var(--accent);padding:clamp(2.75rem,5vw,3.75rem) clamp(1.5rem,5vw,4rem)}
+.feat-inner{max-width:var(--cw);margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;text-align:center}
+.feat-glyph{width:34px;height:34px;border:1px solid #180C14;border-radius:50%;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15px;color:#180C14}
+.feat-title{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#180C14;margin-bottom:.4rem}
+.feat-sub{font-size:11.5px;font-weight:300;color:rgba(24,12,20,.65)}
+@media(max-width:640px){.feat-inner{grid-template-columns:1fr;gap:2.25rem}}
+
+/* INSTAGRAM STRIP */
+.ig-strip{padding:clamp(4rem,8vw,6rem) 0}
+.ig-row{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;max-width:var(--cw);margin:0 auto;padding:0 clamp(1.5rem,5vw,4rem)}
+.ig-cell{aspect-ratio:1;overflow:hidden}
+.ig-cell img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease}
+.ig-cell:hover img{transform:scale(1.06)}
+@media(max-width:768px){.ig-row{grid-template-columns:repeat(3,1fr)}}
 
 /* SECTION HEADERS */
 .sh{text-align:center;padding:clamp(5rem,10vw,8rem) 1.5rem clamp(2rem,4vw,3rem)}
@@ -219,6 +238,10 @@ button{font-family:'Jost',sans-serif}
 .pc-addcart{font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--fg);border:none;padding:7px 13px;cursor:pointer;transition:background .2s}
 .pc-addcart:hover{background:var(--accent)}
 
+.arrivals-sec{background:var(--accent);background-size:640px;background-repeat:repeat;background-position:center}
+#clouds-viewall{background-size:640px;background-repeat:repeat;background-position:center}
+#clouds-header{background-size:640px;background-repeat:repeat;background-position:center}
+#clouds-nl{background-size:640px;background-repeat:repeat;background-position:center}
 .va-wrap{text-align:center;padding:3rem 1rem}
 .va-btn{display:inline-block;border:1px solid var(--fg);color:var(--fg);padding:14px 46px;font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;background:transparent;cursor:pointer;transition:all .3s}
 .va-btn:hover{background:var(--fg);color:var(--bg)}
@@ -236,19 +259,19 @@ button{font-family:'Jost',sans-serif}
 .cb:hover .cb-cta{color:var(--gold)}
 
 /* BRAND STATEMENT (scarlet section) */
-.bs{background:var(--accent);padding:clamp(6rem,14vw,11rem) clamp(2rem,6vw,7rem);text-align:center}
+.bs{background:var(--accent);background-size:640px;background-repeat:repeat;background-position:center;padding:clamp(6rem,14vw,11rem) clamp(2rem,6vw,7rem);text-align:center}
 .bs-sc{
   display:block;
+  color:rgba(24,12,20,.65);
   font-size:9px;
   font-weight:500;
   letter-spacing:.32em;
   text-transform:uppercase;
-  color:rgba(255,255,255,.55);
   margin-bottom:1.25rem;
 }
-.bs-h2{font-family:'Cormorant Garamond',serif;font-size:clamp(2.8rem,6vw,5rem);font-weight:300;font-style:italic;color:#fff;margin-bottom:1.4rem;letter-spacing:-.02em}
-.bs-p{font-size:13px;font-weight:300;line-height:2;color:rgba(255,255,255,.75);max-width:560px;margin:0 auto 2.25rem}
-.bs-btn{display:inline-block;border:1px solid rgba(255,255,255,.4);color:#fff;padding:14px 38px;font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;background:transparent;cursor:pointer;transition:all .3s}
+.bs-h2{font-family:'Cormorant Garamond',serif;font-size:clamp(2.8rem,6vw,5rem);font-weight:300;font-style:italic;color:#180C14;margin-bottom:1.4rem;letter-spacing:-.02em}
+.bs-p{font-size:13px;font-weight:300;line-height:2;color:rgba(24,12,20,.75);max-width:560px;margin:0 auto 2.25rem}
+.bs-btn{display:inline-block;border:1px solid rgba(24,12,20,.4);color:#180C14;padding:14px 38px;font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;background:transparent;cursor:pointer;transition:all .3s}
 .bs-btn:hover{background:#fff;color:var(--accent)}
 
 /* LOOKBOOK GRID */
@@ -271,7 +294,7 @@ button{font-family:'Jost',sans-serif}
 .ig-cell:hover img{transform:scale(1.07)}
 
 /* NEWSLETTER */
-.nl{padding:clamp(4rem,9vw,7rem) 1.5rem;text-align:center;border-top:1px solid var(--border);background:var(--shell)}
+.nl{padding:clamp(4rem,9vw,7rem) 1.5rem;text-align:center;border-top:1px solid var(--border);background:var(--shell) center/cover no-repeat}
 .nl-sc{
   display:block;
   font-size:9px;
@@ -291,26 +314,26 @@ button{font-family:'Jost',sans-serif}
 .nl-sub:hover{background:var(--accent);border-color:var(--accent)}
 
 /* FOOTER */
-footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2rem}
+footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2rem}
 .ft-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1.5fr;gap:3rem;margin-bottom:4rem}
 @media(max-width:900px){.ft-grid{grid-template-columns:1fr 1fr;gap:2.5rem}}
 @media(max-width:540px){.ft-grid{grid-template-columns:1fr;gap:2rem}}
-.ft-logo{height:48px;width:auto;object-fit:contain;filter:brightness(0) invert(1);margin-bottom:1.1rem;cursor:pointer}
-.ft-tag{font-family:'Cormorant Garamond',serif;font-size:1rem;font-style:italic;font-weight:300;color:var(--gold);display:block;margin-bottom:.9rem}
-.ft-desc{font-size:11px;font-weight:300;color:rgba(255,255,255,.32);line-height:1.9;max-width:240px}
-.ft-col-title{font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:1.25rem}
+.ft-logo{height:48px;width:auto;object-fit:contain;margin-bottom:1.1rem;cursor:pointer}
+.ft-tag{font-family:'Cormorant Garamond',serif;font-size:1rem;font-style:italic;font-weight:300;color:var(--accent);display:block;margin-bottom:.9rem}
+.ft-desc{font-size:11px;font-weight:300;color:rgba(24,12,20,.68);line-height:1.9;max-width:240px}
+.ft-col-title{font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg);margin-bottom:1.25rem}
 .ft-links{display:flex;flex-direction:column;gap:.65rem}
-.ft-links a{font-size:11px;font-weight:300;color:rgba(255,255,255,.32);cursor:pointer;transition:color .2s}
-.ft-links a:hover{color:rgba(255,255,255,.82)}
-.ft-nl input{width:100%;padding:11px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:11px;outline:none;margin-bottom:8px;font-family:'Jost',sans-serif}
-.ft-nl input::placeholder{color:rgba(255,255,255,.2)}
-.ft-nl button{width:100%;padding:11px;background:var(--gold);color:var(--fg);font-size:9.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;border:none;cursor:pointer;transition:opacity .2s;font-family:'Jost',sans-serif}
+.ft-links a{font-size:11px;font-weight:300;color:rgba(24,12,20,.68);cursor:pointer;transition:color .2s}
+.ft-links a:hover{color:var(--fg)}
+.ft-nl input{width:100%;padding:11px 14px;background:#fff;border:1px solid var(--border);color:var(--fg);font-size:11px;outline:none;margin-bottom:8px;font-family:'Jost',sans-serif}
+.ft-nl input::placeholder{color:rgba(26,18,10,.28)}
+.ft-nl button{width:100%;padding:11px;background:var(--accent);color:var(--fg);font-size:9.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;border:none;cursor:pointer;transition:opacity .2s;font-family:'Jost',sans-serif}
 .ft-nl button:hover{opacity:.82}
-.ft-bot{border-top:1px solid rgba(255,255,255,.07);padding-top:1.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
-.ft-copy{font-size:10px;color:rgba(255,255,255,.18)}
+.ft-bot{border-top:1px solid var(--border);padding-top:1.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+.ft-copy{font-size:10px;color:rgba(24,12,20,.6)}
 .ft-soc{display:flex;gap:1.5rem}
-.ft-soc a{font-size:9.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);cursor:pointer;transition:color .2s}
-.ft-soc a:hover{color:var(--gold)}
+.ft-soc a{font-size:9.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:rgba(24,12,20,.68);cursor:pointer;transition:color .2s}
+.ft-soc a:hover{color:var(--accent)}
 
 /* PAGE HERO (inner pages) */
 .ph{position:relative;overflow:hidden}
@@ -338,7 +361,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
 .s-sc{font-family:'Cormorant Garamond',serif;font-size:clamp(1.3rem,2.3vw,1.9rem);font-weight:300;font-style:italic;color:var(--accent);display:block;margin-bottom:1.75rem}
 .s-p{font-size:.9rem;font-weight:300;color:var(--dim);line-height:1.95;margin-bottom:2rem}
 .pills{display:flex;flex-wrap:wrap;gap:.5rem}
-.pill{font-size:9.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:6px 16px;border:1px solid rgba(139,26,44,.28);color:var(--accent)}
+.pill{font-size:9.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:6px 16px;border:1px solid rgba(26,18,10,.2);color:var(--accent)}
 .s-link{font-size:10px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--fg);border-bottom:1px solid var(--fg);padding-bottom:2px;cursor:pointer;transition:color .2s,border-color .2s;display:inline-block}
 .s-link:hover{color:var(--accent);border-color:var(--accent)}
 
@@ -364,7 +387,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
 .mf-line{width:1px;height:60px;background:var(--border);margin:2rem auto}
 
 /* SHOP FILTER */
-.filter-bar{position:sticky;top:var(--header-h,168px);z-index:100;background:rgba(247,242,235,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.filter-bar{position:sticky;top:var(--header-h,168px);z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
 .filter-inner{max-width:var(--cw);margin:0 auto;padding:1rem clamp(1.5rem,5vw,4rem);display:flex;align-items:center;flex-wrap:wrap;gap:.6rem}
 .ftab{border:1px solid var(--border);background:none;padding:7px 18px;font-size:9.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);cursor:pointer;border-radius:0;transition:all .2s;font-family:'Jost',sans-serif}
 .ftab:hover,.ftab.on{background:var(--fg);color:#fff;border-color:var(--fg)}
@@ -404,7 +427,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
 .qty-ctrl span{width:36px;text-align:center;font-size:.9rem}
 .add-cart-btn{width:100%;padding:16px;background:var(--fg);color:#fff;font-size:.85rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;border:none;cursor:pointer;transition:background .25s;margin-bottom:.75rem;font-family:'Jost',sans-serif}
 .add-cart-btn:hover{background:var(--accent)}
-.wa-order{width:100%;padding:15px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-size:.85rem;font-weight:500;letter-spacing:.08em;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.65rem;transition:opacity .25s;margin-bottom:.75rem;font-family:'Jost',sans-serif}
+.wa-order{width:100%;padding:15px;background:linear-gradient(135deg,#F1BBD3,#F1BBD3);color:#fff;font-size:.85rem;font-weight:500;letter-spacing:.08em;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.65rem;transition:opacity .25s;margin-bottom:.75rem;font-family:'Jost',sans-serif}
 .wa-order:hover{opacity:.9}
 .wa-order svg{width:19px;height:19px;fill:white;flex-shrink:0}
 .wl-btn{width:100%;padding:14px;border:1px solid var(--border);background:none;font-size:.82rem;font-weight:400;cursor:pointer;transition:all .25s;color:var(--dim);font-family:'Jost',sans-serif}
@@ -438,7 +461,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
 .cart-summary{border-top:2px solid var(--fg);padding-top:1.75rem;margin-top:1rem}
 .cs-row{display:flex;justify-content:space-between;font-size:.88rem;color:var(--dim);margin-bottom:.65rem}
 .cs-row.total{font-size:1.15rem;font-weight:500;color:var(--fg);margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
-.cart-checkout{width:100%;padding:16px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-size:.9rem;font-weight:500;letter-spacing:.1em;border:none;cursor:pointer;margin-top:1.5rem;display:flex;align-items:center;justify-content:center;gap:.65rem;transition:opacity .25s;font-family:'Jost',sans-serif}
+.cart-checkout{width:100%;padding:16px;background:linear-gradient(135deg,#F1BBD3,#F1BBD3);color:#fff;font-size:.9rem;font-weight:500;letter-spacing:.1em;border:none;cursor:pointer;margin-top:1.5rem;display:flex;align-items:center;justify-content:center;gap:.65rem;transition:opacity .25s;font-family:'Jost',sans-serif}
 .cart-checkout:hover{opacity:.9}
 .cart-checkout svg{width:20px;height:20px;fill:white}
 .cart-continue{display:block;text-align:center;font-size:.82rem;color:var(--dim);text-decoration:underline;cursor:pointer;margin-top:1.1rem}
@@ -491,7 +514,8 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
 .cf-sub:hover{background:var(--accent)}
 .ci-row{display:flex;align-items:flex-start;gap:1.1rem;padding:1.25rem 0;border-bottom:1px solid var(--border)}
 .ci-row:last-child{border-bottom:none}
-.ci-icon{width:40px;height:40px;background:var(--shell);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem}
+.ci-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem}
+.ci-icon svg{width:30px;height:30px}
 .ci-label{font-size:.88rem;font-weight:500;color:var(--fg);margin-bottom:2px}
 .ci-val{font-size:.8rem;font-weight:300;color:var(--dim)}
 
@@ -510,7 +534,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
 .info-page{max-width:var(--cw);margin:0 auto;padding:clamp(2rem,6vw,4rem) clamp(1.5rem,5vw,4rem)}
 
 /* FAB */
-.wa-fab{position:fixed;bottom:2rem;right:2rem;width:52px;height:52px;background:linear-gradient(135deg,#25D366,#128C7E);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,.28);cursor:pointer;z-index:900;transition:transform .3s}
+.wa-fab{position:fixed;bottom:2rem;right:2rem;width:52px;height:52px;background:linear-gradient(135deg,#F1BBD3,#F1BBD3);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(241,187,211,.28);cursor:pointer;z-index:900;transition:transform .3s}
 .wa-fab:hover{transform:scale(1.08)}
 .wa-fab svg{width:24px;height:24px;fill:white}
 .btt{position:fixed;bottom:2rem;left:2rem;width:40px;height:40px;border:1px solid var(--fg);background:var(--bg);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:900;transition:all .3s}
@@ -529,7 +553,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
 .currency-pill button.active{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.35)}
 
 /* WISHLIST PANEL */
-.wl-panel{position:fixed;top:0;right:0;width:min(380px,92vw);height:100vh;background:var(--bg);z-index:1200;transform:translateX(100%);transition:transform .35s ease;box-shadow:-4px 0 40px rgba(26,18,10,.12);display:flex;flex-direction:column}
+.wl-panel{position:fixed;top:0;right:0;width:min(380px,92vw);height:100vh;background:var(--bg);z-index:1200;transform:translateX(100%);transition:transform .35s ease;box-shadow:-4px 0 40px rgba(24,12,20,.09);display:flex;flex-direction:column}
 .wl-panel.open{transform:translateX(0)}
 .wl-panel-head{padding:1.75rem 1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .wl-panel-title{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-style:italic;font-weight:400;color:var(--fg)}
@@ -575,19 +599,17 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
 <!-- ANNOUNCEMENT BAR -->
 <div class="ann">
   <div class="ann-track">
-    <span class="ann-item">Free local delivery on orders over TTD $1,500</span><span class="ann-dot"> &middot; </span>
-    <span class="ann-item">New arrivals every week</span><span class="ann-dot"> &middot; </span>
-    <span class="ann-item">New &amp; thrifted pieces curated for you</span><span class="ann-dot"> &middot; </span>
-    <span class="ann-item">Order via WhatsApp for fast personal service</span><span class="ann-dot"> &middot; </span>
-    <span class="ann-item">Free local delivery on orders over TTD $1,500</span><span class="ann-dot"> &middot; </span>
-    <span class="ann-item">New arrivals every week</span><span class="ann-dot"> &middot; </span>
-    <span class="ann-item">New &amp; thrifted pieces curated for you</span><span class="ann-dot"> &middot; </span>
-    <span class="ann-item">Order via WhatsApp for fast personal service</span><span class="ann-dot"> &middot; </span>
+    <span class="ann-item">Order via WhatsApp or Instagram DM</span><span class="ann-dot"> &middot; </span>
+    <span class="ann-item">&#9825; FREE SHIPPING on orders $750+</span><span class="ann-dot"> &middot; </span>
+    <span class="ann-item">New arrivals &bull; Thrifted finds &bull; Limited pieces</span><span class="ann-dot"> &middot; </span>
+    <span class="ann-item">Order via WhatsApp or Instagram DM</span><span class="ann-dot"> &middot; </span>
+    <span class="ann-item">&#9825; FREE SHIPPING on orders $750+</span><span class="ann-dot"> &middot; </span>
+    <span class="ann-item">New arrivals &bull; Thrifted finds &bull; Limited pieces</span><span class="ann-dot"> &middot; </span>
   </div>
 </div>
 
 <!-- LOGO BAR -->
-<div class="logo-bar">
+<div class="logo-bar" id="clouds-header">
   <div class="logo-bar-inner">
     <button class="hamburger" onclick="toggleMob()" aria-label="Menu"><span></span><span></span><span></span></button>
     <div class="logo-bar-center">
@@ -611,11 +633,15 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
 <!-- CATEGORY NAV -->
 <nav class="cat-nav">
   <div class="cat-inner">
-    <button class="on" onclick="quickShop(this,'all','all')">New In</button>
-    <button onclick="quickShop(this,'clothing','all')">Clothing</button>
-    <button onclick="quickShop(this,'swimwear','all')">Swimwear</button>
-    <button onclick="quickShop(this,'clothing','dresses')">Dresses</button>
-    <button onclick="quickShop(this,'clothing','jumpsuits')">Jumpsuits</button>
+    <button onclick="nav('home')">Home</button>
+    <div class="cat-drop">
+      <button onclick="quickShop(this,'clothing','all')">Clothing</button>
+      <div class="cat-drop-panel">
+        <a onclick="quickShop(null,'swimwear','all')">Swimwear</a>
+        <a onclick="quickShop(null,'clothing','dresses')">Dresses</a>
+        <a onclick="quickShop(null,'clothing','jumpsuits')">Jumpsuits</a>
+      </div>
+    </div>
     <button onclick="navPlain('lookbook')">Lookbook</button>
     <button onclick="navPlain('society')">The Society</button>
     <button onclick="navPlain('contact')">Contact</button>
@@ -630,27 +656,28 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
     <img data-img="DUSK" alt="Cupid&#8217;s Society &mdash; New Collection">
     <div class="hero-ov"></div>
     <div class="hero-content">
-      <span class="hero-pill">New Collection &mdash; 2026</span>
       <h1 class="hero-h1">Dress with<br>Intention.</h1>
+      <span class="hero-pill">New Collection &mdash; 2026</span>
       <span class="hero-sc">Live with Love.</span>
       <button class="hero-btn" onclick="navPlain('shop')">Shop New In</button>
     </div>
   </section>
 
-  <div class="vals">
-    <div class="vals-inner">
-      <div class="val"><span class="val-sym"></span><span class="val-lbl">Self-Love</span></div>
-      <div class="val"><span class="val-sym"></span><span class="val-lbl">Passion</span></div>
-      <div class="val"><span class="val-sym"></span><span class="val-lbl">Femininity</span></div>
-      <div class="val"><span class="val-sym"></span><span class="val-lbl">Confidence</span></div>
-      <div class="val"><span class="val-sym"></span><span class="val-lbl">Connection</span></div>
-      <div class="val"><span class="val-sym"></span><span class="val-lbl">Community</span></div>
+  <section class="cat-tiles">
+    <div class="sh"><span class="sh-over">Shop By</span><h2 class="sh-title">Categories</h2></div>
+    <div class="tile-grid">
+      <button class="tile" onclick="quickShop(null,'clothing','dresses')"><img data-img="RHINE" alt="Dresses"><span class="tile-lbl">Dresses</span></button>
+      <button class="tile" onclick="quickShop(null,'clothing','jumpsuits')"><img data-img="JUMP" alt="Jumpsuits"><span class="tile-lbl">Jumpsuits</span></button>
+      <button class="tile" onclick="quickShop(null,'swimwear','all')"><img data-img="STRIPE" alt="Swimwear"><span class="tile-lbl">Swimwear</span></button>
+      <button class="tile" onclick="quickShop(null,'thrift','all')"><img data-img="WHITE" alt="Thrift"><span class="tile-lbl">Thrift</span></button>
     </div>
-  </div>
+  </section>
 
-  <div class="sh rv"><span class="sh-over">Just Dropped</span><h2 class="sh-title">New Arrivals</h2><p class="sh-sub">Each piece chosen for its elegance, allure, and timeless appeal.</p></div>
-  <div class="pgrid" id="home-grid"></div>
-  <div class="va-wrap"><button class="va-btn" onclick="navPlain('shop')">View All Pieces</button></div>
+  <section class="arrivals-sec" id="clouds-arrivals">
+    <div class="sh rv"><span class="sh-over" style="color:#180C14">Just Dropped</span><h2 class="sh-title" style="color:#180C14">New Arrivals</h2><p class="sh-sub" style="color:rgba(24,12,20,.75)">Each piece chosen for its elegance, allure, and timeless appeal.</p></div>
+    <div class="pgrid" id="home-grid"></div>
+    <div class="va-wrap" id="clouds-viewall"><button class="va-btn" onclick="navPlain('shop')">View All Pieces</button></div>
+  </section>
 
   <div class="cat-blocks">
     <button class="cb" onclick="quickShop(null,'clothing','dresses')"><img data-img="BANDAGE" alt="Clothing"><div class="cb-lbl"><span class="cb-name">Clothing</span><span class="cb-cta">Shop Now</span></div></button>
@@ -659,14 +686,14 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
     <button class="cb" onclick="navPlain('lookbook')"><img data-img="RHINE" alt="Lookbook"><div class="cb-lbl"><span class="cb-name">Lookbook</span><span class="cb-cta">View</span></div></button>
   </div>
 
-  <section class="bs">
+  <section class="bs" id="clouds-bs-1">
     <span class="bs-sc rv">More than a boutique.</span>
     <h2 class="bs-h2 rv">A Community.</h2>
     <p class="bs-p rv">Cupid created a society for those who lacked confidence but were meant to embody it &mdash; with the belief that clothing could do more than dress the body. It could shift how a person carries themselves in the world.</p>
     <button class="bs-btn rv" onclick="navPlain('about')">Our Story</button>
   </section>
 
-  <div class="sh rv"><span class="sh-over">The Lookbook</span><h2 class="sh-title">Dress with Intention.</h2></div>
+  <div class="sh rv"><span class="sh-over" style="color:#C2547A">The Lookbook</span><h2 class="sh-title">Dress with Intention.</h2></div>
   <div class="lb-grid" style="max-width:var(--cw);margin:0 auto;padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,4rem)">
     <button class="lb-cell lb-tall" onclick="navPlain('lookbook')"><img data-img="JUMP" alt="Lookbook" loading="lazy"></button>
     <button class="lb-cell" onclick="navPlain('lookbook')"><img data-img="DUSK" alt="Lookbook" loading="lazy"></button>
@@ -686,7 +713,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
     </div>
   </section>
 
-  <section class="nl">
+  <section class="nl" id="clouds-nl">
     <span class="nl-sc rv">You&#8217;re Invited.</span>
     <h2 class="nl-h2 rv">Into the Society.</h2>
     <p class="nl-p rv">Be the first to know about new pieces, exclusive drops, and stories from the collective.</p>
@@ -755,7 +782,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
     <div class="vcard rv rv2"><p class="vc-name">Community</p><p class="vc-desc">You are not just a customer. You are a member of the society.</p></div>
   </div>
 
-  <section class="bs">
+  <section class="bs" id="clouds-bs-2">
     <span class="bs-sc">Each piece is an invitation.</span>
     <h2 class="bs-h2">Into the society.</h2>
     <button class="bs-btn" onclick="navPlain('shop')">Shop the Collection</button>
@@ -778,6 +805,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
       <button class="ftab on" data-maincat="all" onclick="filterShop(this,'all','all')">All</button>
       <button class="ftab" data-maincat="clothing" onclick="filterShop(this,'clothing','all')">Clothing</button>
       <button class="ftab" data-maincat="swimwear" onclick="filterShop(this,'swimwear','all')">Swimwear</button>
+      <button class="ftab" data-maincat="thrift" onclick="filterShop(this,'thrift','all')">Thrift</button>
       <div class="fsep" id="sub-sep" style="display:none"></div>
       <span id="sub-tabs"></span>
       <select class="fsort" onchange="sortShop(this.value)">
@@ -907,12 +935,39 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
     <div class="tcard rv rv2"><span class="tq-mark">&#10077;</span><p class="tq-text">It&#8217;s not just fashion &mdash; it&#8217;s a whole identity shift.</p><span class="tq-auth">&mdash; Society Member</span></div>
   </div>
 
-  <div class="sh"><span class="sh-over">Society Perks</span><h2 class="sh-title">The Loyalty Program</h2><p class="sh-sub" style="font-style:italic">Because loyalty deserves to be celebrated.</p></div>
-  <div class="perk-grid" style="padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,4rem)">
-    <div class="pcard2 rv"><span class="pk-sym">I.</span><p class="pk-title">Society Points</p><p class="pk-desc">Earn 1 point for every dollar spent.</p></div>
-    <div class="pcard2 rv rv1"><span class="pk-sym">II.</span><p class="pk-title">Early Access</p><p class="pk-desc">Members see new arrivals before anyone else.</p></div>
-    <div class="pcard2 rv rv2"><span class="pk-sym">III.</span><p class="pk-title">Member Discounts</p><p class="pk-desc">Exclusive discount codes for loyal members.</p></div>
-    <div class="pcard2 rv rv3"><span class="pk-sym">IV.</span><p class="pk-title">Surprise Pieces</p><p class="pk-desc">Special gifts for our most devoted Society members.</p></div>
+  <div class="sh"><span class="sh-over">Membership</span><h2 class="sh-title">Membership Requirements</h2><p class="sh-sub" style="font-style:italic">Because loyalty deserves to be celebrated.</p></div>
+
+  <div style="max-width:760px;margin:0 auto;padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,3rem)">
+    <p style="font-size:.85rem;letter-spacing:.02em;color:var(--fg);opacity:.75;margin:0 0 1.5rem">To become an official Cupids Society Member, applicants must:</p>
+    <ul style="list-style:none;margin:0;padding:0;display:grid;gap:.9rem">
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Maintain a fashion/lifestyle-aligned aesthetic</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Be willing to create and post Cupids Society content</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Tag @CupidsSocietyBoutique when featuring the brand</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Share their unique Cupid Ambassador Code</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Post a minimum of 2 Cupids Society-related pieces of content per month</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Support and engage with Society launches, events &amp; campaigns</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Represent the brand in a classy, respectful and authentic manner</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Be willing to attend selected Cupids Society events/pop-ups where possible</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>No minimum follower count required &mdash; engagement, personality and brand fit matter more</li>
+    </ul>
+  </div>
+
+  <div style="max-width:900px;margin:0 auto;padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,4rem)">
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.4rem,2.5vw,1.8rem);font-style:italic;color:var(--accent);margin:0 0 1.5rem;text-align:center">Membership Perks</h3>
+    <ul style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.9rem 2rem">
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Member-only discounts &amp; flash sales</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Early access to new drops &amp; limited pieces</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Free shipping on orders $500+</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Exclusive birthday rewards</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>First access to one-of-one pieces</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Members-only events &amp; experiences</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Member spotlights &amp; creator opportunities</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Vote on future collections, colours &amp; events</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Exclusive giveaways &amp; gifts</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Referral rewards for bringing friends into the Society</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>First access to pop-ups &amp; special experiences</li>
+      <li style="display:flex;gap:.75rem;font-size:.92rem;line-height:1.5"><span style="color:var(--accent)">&#9825;</span>Style advice &amp; community outfit sharing</li>
+    </ul>
   </div>
 
   <section class="nl">
@@ -939,10 +994,10 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
       <button type="button" class="cf-sub" onclick="cfSubmit(this)">Send Message</button>
     </div>
     <div class="cf-info">
-      <div class="ci-row"><div class="ci-icon">&#128241;</div><div><p class="ci-label">WhatsApp</p><p class="ci-val">Chat with us directly &mdash; fastest response</p></div></div>
-      <div class="ci-row"><div class="ci-icon">&#128247;</div><div><p class="ci-label">Instagram</p><p class="ci-val">@cupidssociety</p></div></div>
-      <div class="ci-row"><div class="ci-icon">&#127925;</div><div><p class="ci-label">TikTok</p><p class="ci-val">@cupidssociety</p></div></div>
-      <div class="ci-row"><div class="ci-icon">&#9993;</div><div><p class="ci-label">Email</p><p class="ci-val">hello@cupidssociety.com</p></div></div>
+      <a class="ci-row" href="#" onclick="waOpen();return false;" style="text-decoration:none;color:inherit;cursor:pointer"><div class="ci-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="#25D366"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.2h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2zm5.8 14.03c-.24.68-1.4 1.3-1.93 1.35-.5.05-1 .25-3.35-.7-2.83-1.16-4.63-4.03-4.77-4.22-.14-.19-1.14-1.52-1.14-2.9 0-1.37.72-2.05.97-2.33.25-.28.55-.35.73-.35h.53c.17 0 .4-.03.62.48.24.56.8 1.95.87 2.09.07.14.11.31.02.5-.09.19-.14.31-.28.47-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.7 1.16 1.51 1.88 1.04.93 1.91 1.22 2.19 1.36.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.09 1.63.77 1.9.91.28.14.46.21.53.33.07.12.07.68-.17 1.36z"/></svg></div><div><p class="ci-label">WhatsApp</p><p class="ci-val">Chat with us directly &mdash; fastest response</p></div></a>
+      <a class="ci-row" href="https://www.instagram.com/cupidssocietyboutique?igsh=MTlkYm9xemVla29iMQ==" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="ci-icon"><svg viewBox="0 0 24 24" width="22" height="22"><defs><radialGradient id="igg" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="15%" stop-color="#fdf497"/><stop offset="40%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="100%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igg)"/><rect x="6.5" y="6.5" width="11" height="11" rx="4" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="12" cy="12" r="3.2" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="16.6" cy="7.4" r="1" fill="#fff"/></svg></div><div><p class="ci-label">Instagram</p><p class="ci-val">@cupidssocietyboutique</p></div></a>
+      <a class="ci-row" href="https://www.tiktok.com/@cupidssocietyboutique?_r=1&_t=ZS-98WuVmeV3iO" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="ci-icon"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="#000" d="M16.6 5.82c-.9-.78-1.47-1.9-1.6-3.14h-3.05v13.44c0 1.5-1.22 2.72-2.72 2.72a2.72 2.72 0 0 1 0-5.44c.28 0 .55.04.8.12V10.4a5.8 5.8 0 0 0-.8-.05 5.83 5.83 0 1 0 5.83 5.83V9.3a7.3 7.3 0 0 0 4.32 1.4V7.68a4.5 4.5 0 0 1-2.78-1.86z"/></svg></div><div><p class="ci-label">TikTok</p><p class="ci-val">@cupidssocietyboutique</p></div></a>
+      <a class="ci-row" href="mailto:Cupidsocietyboutique@gmail.com" style="text-decoration:none;color:inherit"><div class="ci-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--fg)" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 7 8.5-7"/></svg></div><div><p class="ci-label">Email</p><p class="ci-val">Cupidsocietyboutique@gmail.com</p></div></a>
       <div class="ci-row" style="border:none"><div class="ci-icon">&#9200;</div><div><p class="ci-label">Response Time</p><p class="ci-val">We typically respond within 24 hours. WhatsApp is fastest.</p></div></div>
     </div>
   </div>
@@ -1002,6 +1057,18 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
   </div>
 </div>
 
+  <section class="ig-strip">
+    <div class="sh"><span class="sh-over">Follow Along</span><h2 class="sh-title">@cupidssociety</h2></div>
+    <div class="ig-row">
+      <div class="ig-cell"><img data-img="DUSK" alt=""></div>
+      <div class="ig-cell"><img data-img="STRIPE" alt=""></div>
+      <div class="ig-cell"><img data-img="RHINE" alt=""></div>
+      <div class="ig-cell"><img data-img="BANDAGE" alt=""></div>
+      <div class="ig-cell"><img data-img="JUMP" alt=""></div>
+      <div class="ig-cell"><img data-img="WHITE" alt=""></div>
+    </div>
+  </section>
+
 <!-- FOOTER -->
 <footer>
   <div class="ft-grid">
@@ -1033,10 +1100,10 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
     <div>
       <p class="ft-col-title">Connect</p>
       <div class="ft-links" style="margin-bottom:1.25rem">
-        <a>Instagram &mdash; @cupidssociety</a>
-        <a>TikTok &mdash; @cupidssociety</a>
+        <a href="https://www.instagram.com/cupidssocietyboutique?igsh=MTlkYm9xemVla29iMQ==" target="_blank" rel="noopener">Instagram &mdash; @cupidssocietyboutique</a>
+        <a href="https://www.tiktok.com/@cupidssocietyboutique?_r=1&_t=ZS-98WuVmeV3iO" target="_blank" rel="noopener">TikTok &mdash; @cupidssocietyboutique</a>
         <a onclick="waOpen()">WhatsApp Us</a>
-        <a href="mailto:hello@cupidssociety.com">hello@cupidssociety.com</a>
+        <a href="mailto:Cupidsocietyboutique@gmail.com">Cupidsocietyboutique@gmail.com</a>
       </div>
       <div class="ft-nl">
         <input type="email" placeholder="Your email address">
@@ -1047,7 +1114,7 @@ footer{background:var(--fg);padding:clamp(4rem,7vw,6rem) clamp(2rem,5vw,4rem) 2r
   <div class="ft-bot">
     <p class="ft-copy">&copy; 2026 Cupid&#8217;s Society. All rights reserved.</p>
     <div class="ft-soc">
-      <a>Instagram</a><a>TikTok</a><a onclick="waOpen()">WhatsApp</a>
+      <a href="https://www.instagram.com/cupidssocietyboutique?igsh=MTlkYm9xemVla29iMQ==" target="_blank" rel="noopener">Instagram</a><a href="https://www.tiktok.com/@cupidssocietyboutique?_r=1&_t=ZS-98WuVmeV3iO" target="_blank" rel="noopener">TikTok</a><a onclick="waOpen()">WhatsApp</a>
     </div>
   </div>
 </footer>
@@ -1084,7 +1151,7 @@ const IMG = {"LOGO": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQ
 // This router uses a simple JS variable instead — no URL/hash manipulation at all.
 // ═══════════════════════════════════════════════
 
-const WA_NUM = '18681234567';
+const WA_NUM = '18683785984';
 let currency = 'TTD';
 let wl = new Set();
 let cart = [];
@@ -1120,7 +1187,10 @@ const PRODS = [
    details:"Triangle bikini top with adjustable ties. Matching brief bottoms. CS logo patch.",care:"Hand wash. Rinse after salt or chlorinated water."},
   {id:'pink-horizon',name:'Pink Horizon Bikini',cat:'swimwear',sub:'bikini-sets',tag:'New In',ttd:700,usd:103,sizes:['XS','S','M','L','XL'],color:'Pink/Black',img:'DUSK',
    desc:"Emerge from the water like the main character. Bold pink with black trim — for the woman who makes dusk look like golden hour.",
-   details:"Scoop neck bikini top with black binding. High-cut briefs with ring hardware. Cupid's Society logo.",care:"Hand wash. Do not tumble dry."}
+   details:"Scoop neck bikini top with black binding. High-cut briefs with ring hardware. Cupid's Society logo.",care:"Hand wash. Do not tumble dry."},
+  {id:'thrifted-slip',name:'Thrifted Silk Slip',cat:'thrift',sub:'all',tag:'One of One',ttd:400,usd:59,sizes:['S','M'],color:'Champagne',img:'WHITE',
+   desc:"A one-of-one find, hand-selected and restyled. Pre-loved with the same Cupid Society standard — because sustainable can still be sexy.",
+   details:"Secondhand silk slip dress, thrifted and quality-checked. Only one available.",care:"Hand wash cold. Hang dry."}
 ];
 
 function getProd(id){ return PRODS.find(function(p){return p.id===id;}) || PRODS[0]; }
@@ -1154,14 +1224,14 @@ function imgs(){
       el.src = 'data:' + mime + ';base64,' + IMG[el.dataset.img];
     }
   });
-  // Dreamy pink cloud texture behind all the page's open/white space
-  if (IMG.CLOUDS && !document.body.dataset.cloudsApplied){
-    document.body.style.backgroundImage = 'url(data:image/jpeg;base64,' + IMG.CLOUDS + ')';
-    document.body.dataset.cloudsApplied = '1';
-    // same clouds fill the top banner so the logo sits on a continuous sky
-    var lb = document.querySelector('.logo-bar');
-    if (lb) lb.style.backgroundImage = 'url(data:image/jpeg;base64,' + IMG.CLOUDS + ')';
-  }
+  // Clouds are scoped to the pink sections: header, "View All Pieces" + both community bands.
+  var cloudUrl = 'url(assets/clouds-pink.png)';
+  var nlEl = document.getElementById('clouds-nl');
+  if (nlEl){ nlEl.style.backgroundImage = 'url(assets/clouds-nl.png)'; nlEl.style.backgroundSize = 'cover'; nlEl.style.backgroundRepeat = 'no-repeat'; }
+  ['clouds-header','clouds-arrivals','clouds-viewall','clouds-bs-1','clouds-bs-2'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.backgroundImage = cloudUrl;
+  });
 }
 
 // ── PRODUCT CARD BUILDER ──
@@ -1181,7 +1251,7 @@ function buildCard(p){
       '<button class="pheart" data-pid="'+p.id+'" onclick="event.stopPropagation();toggleWL(this,\''+p.id+'\')" aria-label="Wishlist">'+(wl.has(p.id)?'\u2665':'\u2661')+'</button>' +
     '</div>' +
     '<div class="pc-body">' +
-      '<p class="pc-cat">'+(p.cat==='clothing'?'Clothing':'Swimwear')+'</p>' +
+      '<p class="pc-cat">'+(p.cat==='clothing'?'Clothing':p.cat==='swimwear'?'Swimwear':'Thrift')+'</p>' +
       '<p class="pc-name" style="cursor:pointer" onclick="openProduct(\''+p.id+'\')">'+p.name+'</p>' +
       '<p class="pc-price" data-ttd="TTD $'+p.ttd+'" data-usd="USD $'+p.usd+'">'+(currency==='TTD'?'TTD $'+p.ttd:'USD $'+p.usd)+'<small>/ '+(currency==='TTD'?'USD $'+p.usd:'TTD $'+p.ttd)+'</small></p>' +
       '<div class="pc-actions">' +
@@ -1247,7 +1317,7 @@ function loadProduct(id){
   document.getElementById('pd-bc-name').textContent = p.name;
   document.getElementById('pd-cat').textContent = p.cat === 'clothing'
     ? 'Clothing — ' + p.sub.charAt(0).toUpperCase() + p.sub.slice(1).replace('-',' ')
-    : 'Swimwear — ' + p.sub.replace('-',' ');
+    : p.cat === 'swimwear' ? 'Swimwear — ' + p.sub.replace('-',' ') : 'Thrift';
   document.getElementById('pd-name').textContent = p.name;
   document.getElementById('pd-tag').textContent = p.tag;
   document.getElementById('pd-price').innerHTML = fmtPrice(p);
@@ -1318,7 +1388,7 @@ function addToCartFromPDP(){
   if (!curProd) return;
   if (!selectedSize){
     document.querySelectorAll('#pd-sizes .sz-pill').forEach(function(b){
-      b.style.borderColor = '#E07BAF';
+      b.style.borderColor = '#F1BBD3';
     });
     showToast('Please select a size first');
     return;
@@ -1328,7 +1398,7 @@ function addToCartFromPDP(){
 
 // ── SHOP FILTERS ──
 let shopCat = 'all', shopSub = 'all';
-const SUBS = {clothing:['all','dresses','jumpsuits'], swimwear:['all','bikini-sets','cover-ups']};
+const SUBS = {clothing:['all','dresses','jumpsuits'], swimwear:['all','bikini-sets','cover-ups'], thrift:[]};
 const SUBLABELS = {all:'All', dresses:'Dresses', jumpsuits:'Jumpsuits', 'bikini-sets':'Bikini Sets', 'cover-ups':'Cover-ups'};
 
 function initShop(params){
@@ -1355,9 +1425,9 @@ function filterShop(btn, cat, sub){
 function renderShopFilters(){
   const subDiv = document.getElementById('sub-tabs');
   const sep = document.getElementById('sub-sep');
-  if (shopCat === 'all'){ subDiv.innerHTML = ''; sep.style.display = 'none'; return; }
-  sep.style.display = 'block';
   const subs = SUBS[shopCat] || [];
+  if (shopCat === 'all' || subs.length === 0){ subDiv.innerHTML = ''; sep.style.display = 'none'; return; }
+  sep.style.display = 'block';
   subDiv.innerHTML = '';
   subs.forEach(function(s){
     const btn = document.createElement('button');
@@ -1611,20 +1681,20 @@ function nlSubmit(e){
   e.preventDefault();
   const btn = e.target.querySelector('button');
   const orig = btn.textContent;
-  btn.textContent = 'Joined! \u2713'; btn.style.background = '#25D366';
+  btn.textContent = 'Joined! \u2713'; btn.style.background = '#F1BBD3';
   showToast("Welcome to the Society!");
   setTimeout(function(){ btn.textContent = orig; btn.style.background = ''; }, 3000);
   e.target.reset();
 }
 function ftNlSubmit(btn){
   const orig = btn.textContent;
-  btn.textContent = 'Joined! \u2713'; btn.style.background = '#25D366';
+  btn.textContent = 'Joined! \u2713'; btn.style.background = '#F1BBD3';
   showToast("Welcome to the Society!");
   setTimeout(function(){ btn.textContent = orig; btn.style.background = ''; }, 3000);
 }
 function cfSubmit(btn){
   const orig = btn.textContent;
-  btn.textContent = 'Message Sent! \u2713'; btn.style.background = '#25D366';
+  btn.textContent = 'Message Sent! \u2713'; btn.style.background = '#F1BBD3';
   showToast("Message sent! We'll be in touch soon.");
   setTimeout(function(){ btn.textContent = orig; btn.style.background = ''; }, 3000);
 }
