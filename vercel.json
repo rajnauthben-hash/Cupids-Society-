@@ -2,5 +2,13 @@
   "version": 2,
   "buildCommand": null,
   "outputDirectory": ".",
-  "framework": null
+  "framework": null,
+  "headers": [
+    {
+      "source": "/assets/(.*\\.mp4)",
+      "headers": [
+        { "key": "Content-Type", "value": "video/mp4" }
+      ]
+    }
+  ]
 }
