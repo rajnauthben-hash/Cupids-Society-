@@ -655,7 +655,7 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 <div id="page-home" class="page active">
 
   <section class="hero">
-    <img src="uploads/IMG_7565.jpeg" alt="Cupid&#8217;s Society &mdash; New Collection" style="width:100%;height:100%;object-fit:cover">
+    <img data-img="RHINE" alt="Cupid&#8217;s Society &mdash; New Collection">
     <div class="hero-ov"></div>
     <div class="hero-content">
       <h1 class="hero-h1" style="font-family:'Ballet',cursive;font-style:normal;color:#F1BBD3">Welcome Angel</h1>
@@ -1194,6 +1194,7 @@ let PRODS = [
 ];
 
 // ── SUPABASE ──
+const SLUG_IMG={'crystal-night-mini':'RHINE','blush-bandage':'BANDAGE','white-ruched-mini':'WHITE','black-cat-unitard':'JUMP','stripe-paradise':'STRIPE','pink-horizon':'DUSK','thrifted-slip':'WHITE'};
 const SB_URL='https://adsflnylewjhdmpzzghs.supabase.co';
 const SB_KEY='sb_publishable_99im139cBdu32Kh3pttLnA_KhWx87B7';
 function sbGet(path){return fetch(SB_URL+'/rest/v1/'+path,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(r){return r.json();});}
@@ -1210,7 +1211,7 @@ async function loadFromSupabase(){
       const pimgs=(p.product_images||[]).sort(function(a,b){return a.sort_order-b.sort_order;});
       PRODS.push({id:p.slug,name:p.name,cat:p.cat,sub:p.sub,tag:p.tag||'',
         ttd:parseFloat(p.price_ttd),usd:parseFloat(p.price_usd),
-        sizes:sizes,color:p.color||'',img:null,
+        sizes:sizes,color:p.color||'',img:SLUG_IMG[p.slug]||null,
         desc:p.description||'',details:p.details||'',care:p.care||'',
         _imgUrl:pimgs.length?pimgs[0].url:null,_stocks:stocks});
     });
