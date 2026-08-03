@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F1BBD3">
+<meta name="robots" content="noindex,nofollow">
+<title>Cupid's Society — Back Office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Same house as the storefront: Cormorant Garamond + Jost, the one pink,
+   ink and white. Buttons are ink rather than pink — a control has to be
+   readable, and #F1BBD3 can't carry white text. */
+:root{
+  --bg:#FFFFFF; --paper:#FDFBFC; --fg:#180C14; --pink:#F1BBD3;
+  --pink-wash:#FDF4F8; --dim:rgba(24,12,20,.48); --line:rgba(24,12,20,.11);
+  --bad:#A3231F; --warn:#8A5100; --good:#1D6B4E;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Jost',system-ui,sans-serif;
+  --cw:760px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:var(--sans); font-weight:300; font-size:15px; line-height:1.55;
+  background:var(--paper); color:var(--fg);
+  padding-bottom:calc(74px + env(safe-area-inset-bottom));
+  font-variant-numeric:tabular-nums;
+}
+h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:.01em;line-height:1.2}
+h1{font-size:30px} h2{font-size:22px} h3{font-size:17px}
+button,input,select,textarea{font-family:var(--sans);font-size:inherit;color:inherit;font-weight:300}
+.hide{display:none!important}
+.num{font-weight:500;font-variant-numeric:tabular-nums}
+
+/* ---------- shell ---------- */
+.wrap{max-width:var(--cw);margin:0 auto;padding:0 18px}
+header.top{position:sticky;top:0;z-index:20;background:var(--pink);
+  padding:calc(14px + env(safe-area-inset-top)) 0 13px}
+header.top .wrap{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.eyebrow{font-size:9px;letter-spacing:.24em;text-transform:uppercase;
+  color:rgba(24,12,20,.55);display:block;margin-bottom:3px;font-weight:500}
+.linkbtn{background:none;border:0;font-size:12px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:500;padding:6px 0;cursor:pointer;
+  border-bottom:1px solid var(--fg)}
+main{padding-top:20px}
+section.view{animation:rise .22s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- bottom nav ---------- */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg);
+  border-top:1px solid var(--line);display:flex;
+  padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;background:none;border:0;padding:13px 4px 15px;cursor:pointer;
+  color:var(--dim);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  font-weight:500;position:relative}
+nav.tabs button[aria-selected="true"]{color:var(--fg)}
+nav.tabs button[aria-selected="true"]::before{content:"";position:absolute;top:0;
+  left:50%;transform:translateX(-50%);width:34px;height:2px;background:var(--pink)}
+.badge{position:absolute;top:7px;right:calc(50% - 30px);background:var(--fg);color:#fff;
+  font-size:9px;font-weight:500;min-width:16px;height:16px;border-radius:8px;
+  display:grid;place-items:center;padding:0 4px}
+
+/* ---------- pieces ---------- */
+.card{background:var(--bg);border:1px solid var(--line);padding:16px;margin-bottom:12px}
+.rowbtn{width:100%;text-align:left;background:var(--bg);border:1px solid var(--line);
+  padding:12px;margin-bottom:10px;cursor:pointer;display:block}
+.rowbtn:active{background:var(--pink-wash)}
+.flex{display:flex;gap:12px;align-items:center}
+.between{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.grow{flex:1;min-width:0}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dim{color:var(--dim)} .small{font-size:13px} .tiny{font-size:11px}
+
+.btn{background:var(--fg);color:#fff;border:0;padding:14px 18px;cursor:pointer;
+  width:100%;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:500}
+.btn:active{opacity:.85}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn.pink{background:var(--pink);color:var(--fg)}
+.btn.danger{background:transparent;color:var(--bad);border:1px solid rgba(163,35,31,.25)}
+.btn.sm{padding:10px 13px;width:auto;letter-spacing:.12em}
+.btn[disabled]{opacity:.4;cursor:default}
+
+label.field{display:block;margin-bottom:14px}
+label.field > span{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:6px;font-weight:500}
+input[type=text],input[type=number],input[type=email],input[type=password],
+input[type=search],select,textarea{width:100%;background:var(--bg);
+  border:1px solid var(--line);padding:12px;outline:none;border-radius:0}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible
+  {outline:2px solid var(--fg);outline-offset:2px}
+textarea{min-height:80px;resize:vertical;line-height:1.5}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.pill{display:inline-block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  padding:4px 9px;border:1px solid var(--line);color:var(--dim);font-weight:500}
+.pill.on{background:var(--pink);border-color:var(--pink);color:var(--fg)}
+.pill.draft{color:var(--warn);border-color:rgba(138,81,0,.3)}
+
+/* ---------- SIGNATURE: the size run ---------- */
+/* Reads like the stock sheet she'd otherwise keep on paper. */
+.run{display:flex;margin-top:10px;border:1px solid var(--line);background:var(--bg)}
+.run .cell{flex:1;min-width:0;text-align:center;padding:6px 2px;border-right:1px solid var(--line)}
+.run .cell:last-child{border-right:0}
+.run .sz{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:block}
+.run .qty{font-size:15px;font-weight:400;display:block;font-variant-numeric:tabular-nums}
+.run .cell.zero{background:repeating-linear-gradient(135deg,var(--pink-wash) 0 5px,#fff 5px 10px)}
+.run .cell.zero .qty{color:rgba(24,12,20,.28);text-decoration:line-through}
+.run .cell.low .qty{color:var(--warn)}
+
+/* ---------- SIGNATURE: order tickets ---------- */
+.ticket{position:relative;background:var(--bg);border:1px solid var(--line);
+  padding:15px 15px 15px 24px;margin-bottom:12px}
+.ticket::before{content:"";position:absolute;left:0;top:0;bottom:0;width:10px;
+  background:
+    radial-gradient(circle at 0 50%,transparent 0 4px,#fff 4px 4.7px,transparent 4.7px)
+    0 0/10px 13px repeat-y, var(--pink);}
+.ticket.settled::before{background:var(--line)}
+.ticket .ref{font-size:11px;letter-spacing:.12em;color:var(--dim)}
+.ticket ul{list-style:none;margin:11px 0}
+.ticket li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;
+  border-bottom:1px dashed var(--line);font-size:14px}
+.ticket li:last-child{border-bottom:0}
+.ticket .acts{display:flex;gap:8px;margin-top:11px}
+.ticket .acts .btn{flex:1}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat{background:var(--bg);border:1px solid var(--line);padding:14px}
+.stat .k{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:500}
+.stat .v{font-family:var(--serif);font-size:28px;font-weight:500;margin-top:2px;line-height:1.1}
+.stat .v small{font-size:12px;font-family:var(--sans);color:var(--dim)}
+
+.chart{display:flex;align-items:flex-end;gap:3px;height:70px;margin:14px 0 6px}
+.chart .bar{flex:1;background:var(--pink);min-height:2px}
+.chart .bar.top{background:var(--fg)}
+.axis{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);
+  letter-spacing:.06em}
+
+.rank{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.rank:last-child{border-bottom:0}
+.rank .n{font-size:11px;color:var(--dim);width:14px}
+.rank .bar2{height:4px;background:var(--pink);margin-top:6px}
+
+/* ---------- photos ---------- */
+.imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.imgs .thumb{position:relative;aspect-ratio:3/4;overflow:hidden;border:1px solid var(--line);
+  background:var(--pink-wash)}
+.imgs .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.imgs .thumb .x{position:absolute;top:5px;right:5px;background:rgba(24,12,20,.75);color:#fff;
+  border:0;width:22px;height:22px;border-radius:50%;font-size:13px;cursor:pointer;
+  display:grid;place-items:center;line-height:1}
+.imgs .thumb .star{position:absolute;bottom:5px;left:5px;background:rgba(255,255,255,.94);
+  border:0;font-size:8px;font-weight:500;padding:4px 6px;cursor:pointer;
+  letter-spacing:.1em;text-transform:uppercase}
+.imgs .thumb.primary{outline:2px solid var(--fg);outline-offset:-2px}
+.imgs .add{aspect-ratio:3/4;border:1px dashed var(--line);background:none;cursor:pointer;
+  color:var(--dim);font-size:11px;display:grid;place-items:center;text-align:center;padding:8px;
+  letter-spacing:.06em}
+
+/* ---------- size rows ---------- */
+.vrow{display:grid;grid-template-columns:1fr 108px 32px;gap:8px;align-items:center;margin-bottom:8px}
+.vrow input[type=text]{padding:10px 11px}
+.stepper{display:flex;border:1px solid var(--line);background:var(--bg)}
+.stepper button{width:32px;border:0;background:none;font-size:16px;cursor:pointer;color:var(--dim)}
+.stepper input{border:0;text-align:center;padding:10px 0;font-weight:400;min-width:0}
+.vrow .del{background:none;border:0;color:var(--dim);font-size:17px;cursor:pointer;padding:4px}
+.sizeadd{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sizeadd button{border:1px solid var(--line);background:none;padding:7px 12px;font-size:11px;
+  letter-spacing:.1em;cursor:pointer}
+.sizeadd button:active{background:var(--pink)}
+
+/* ---------- sheet ---------- */
+.scrim{position:fixed;inset:0;background:rgba(24,12,20,.45);z-index:40;animation:fade .18s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{position:fixed;inset:0;z-index:41;background:var(--paper);display:flex;
+  flex-direction:column;animation:up .24s cubic-bezier(.2,.8,.3,1) both}
+@keyframes up{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+.sheet .shead{background:var(--pink);
+  padding:calc(14px + env(safe-area-inset-top)) 18px 13px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sheet .sbody{flex:1;overflow-y:auto;padding:18px 18px 34px;-webkit-overflow-scrolling:touch}
+.sheet .sfoot{border-top:1px solid var(--line);background:var(--bg);
+  padding:12px 18px calc(12px + env(safe-area-inset-bottom));display:flex;gap:9px}
+.sheet .sfoot .btn{flex:1}
+@media(min-width:780px){
+  .sheet{top:4vh;bottom:4vh;left:50%;transform:translateX(-50%);width:660px;
+    border:1px solid var(--line)}
+  @keyframes up{from{transform:translateX(-50%) translateY(16px);opacity:0}
+                to{transform:translateX(-50%);opacity:1}}
+}
+
+/* ---------- login ---------- */
+#gate{min-height:100dvh;display:grid;place-items:center;padding:26px}
+#gate .box{width:100%;max-width:330px;text-align:center}
+#gate .heart{font-size:26px;color:var(--pink);margin-bottom:10px}
+#gate .box .btn,#gate .box label{text-align:left}
+
+/* ---------- misc ---------- */
+.empty{text-align:center;padding:46px 20px;color:var(--dim)}
+.empty .big{font-family:var(--serif);font-size:20px;color:var(--fg);margin-bottom:6px}
+.err{background:var(--pink-wash);border:1px solid rgba(163,35,31,.22);color:var(--bad);
+  padding:11px 13px;font-size:13px;margin-bottom:14px;text-align:left}
+.seg{display:flex;border:1px solid var(--line);margin-bottom:16px;background:var(--bg)}
+.seg button{flex:1;border:0;background:none;padding:10px 4px;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);cursor:pointer;font-weight:500;
+  border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-selected="true"]{background:var(--pink);color:var(--fg)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;z-index:60;
+  background:var(--fg);color:#fff;padding:12px 18px;font-size:12px;letter-spacing:.06em;
+  animation:rise .2s ease both;max-width:88vw;text-align:center}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  border-radius:50%;animation:sp .7s linear infinite;display:inline-block;vertical-align:-2px}
+.ghost .spin,.sfoot .ghost .spin{border-color:var(--line);border-top-color:var(--fg)}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ SIGN IN ============ -->
+<div id="gate">
+  <div class="box">
+    <div class="heart">&#x2661;</div>
+    <h1>Cupid's Society</h1>
+    <p class="dim small" style="margin:4px 0 24px;letter-spacing:.14em;
+      text-transform:uppercase;font-size:10px">Back Office</p>
+    <div id="gateErr" class="err hide"></div>
+    <label class="field"><span>Email</span>
+      <input type="email" id="email" autocomplete="username" inputmode="email"></label>
+    <label class="field"><span>Password</span>
+      <input type="password" id="password" autocomplete="current-password"></label>
+    <button class="btn" id="signIn">Sign in</button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hide">
+  <header class="top">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow" id="todayLabel">—</span>
+        <h1 id="viewTitle">Today</h1>
+      </div>
+      <button class="linkbtn" id="signOut">Sign out</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="view" id="v-today"></section>
+    <section class="view hide" id="v-stock"></section>
+    <section class="view hide" id="v-orders"></section>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="today"  aria-selected="true">Today</button>
+    <button data-tab="stock"  aria-selected="false">Pieces</button>
+    <button data-tab="orders" aria-selected="false">Orders
+      <span class="badge hide" id="pendBadge">0</span></button>
+  </nav>
+</div>
+
+<div id="sheetHost"></div>
+<div id="toastHost"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+/* =====================================================================
+   CONFIG — Supabase → Project Settings → API
+   ===================================================================== */
+const CONFIG = {
+  SUPABASE_URL      : 'https://adsflnylewjhdmpzzghs.supabase.co',
+  SUPABASE_ANON_KEY : 'sb_publishable_99im139cBdu32Kh3pttLnA_KhWx87B7',
+  LOW_STOCK_AT      : 2,
+  SIZES             : ['XS','S','M','L','XL','XXL','One size'],
+  TAGS              : ['New In','Bestseller','Resort Wear','One of One','Back in Stock'],
+  SUBS : { clothing:['all','dresses','jumpsuits'],
+           swimwear:['all','bikini-sets','cover-ups'],
+           thrift  :['all'] },
+  SUBLABEL : { all:'All', dresses:'Dresses', jumpsuits:'Jumpsuits',
+               'bikini-sets':'Bikini Sets', 'cover-ups':'Cover-ups' }
+};
+
+const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const $  = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = (n, cur='TTD') =>
+  cur + ' $' + Number(n||0).toLocaleString('en-TT',
+    {minimumFractionDigits:0, maximumFractionDigits:2});
+const slugify = s => s.toLowerCase().trim()
+  .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
+
+let DB = { products:[], orders:[] };
+let TAB = 'today';
+
+function toast(msg){
+  $('#toastHost').innerHTML = `<div class="toast">${esc(msg)}</div>`;
+  setTimeout(()=>{ $('#toastHost').innerHTML=''; }, 2800);
+}
+
+/* ---------------- auth ---------------- */
+$('#signIn').onclick = async () => {
+  const b = $('#signIn'); b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+  const { error } = await sb.auth.signInWithPassword({
+    email: $('#email').value.trim(), password: $('#password').value });
+  b.disabled = false; b.textContent = 'Sign in';
+  if (error){
+    const e = $('#gateErr');
+    e.textContent = 'That email and password don\u2019t match an account.';
+    e.classList.remove('hide'); return;
+  }
+  boot();
+};
+$('#signOut').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+/* ---------------- boot ---------------- */
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session){ $('#gate').classList.remove('hide'); $('#app').classList.add('hide'); return; }
+  $('#gate').classList.add('hide'); $('#app').classList.remove('hide');
+  $('#todayLabel').textContent = new Date().toLocaleDateString('en-GB',
+    { weekday:'long', day:'numeric', month:'long' });
+  await load(); render();
+}
+
+async function load(){
+  const [p, o] = await Promise.all([
+    sb.from('products').select('*, variants(*), product_images(*)')
+      .neq('status','archived').order('sort_order'),
+    sb.from('orders').select('*, order_items(*)')
+      .order('created_at',{ascending:false}).limit(300)
+  ]);
+  if (p.error || o.error) toast('Couldn\u2019t reach the database. Check your connection.');
+  DB.products = p.data || [];
+  DB.orders   = o.data || [];
+  const n = DB.orders.filter(x=>x.status==='pending').length;
+  const b = $('#pendBadge'); b.textContent = n; b.classList.toggle('hide', n===0);
+}
+
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => {
+  TAB = b.dataset.tab;
+  document.querySelectorAll('nav.tabs button')
+    .forEach(x => x.setAttribute('aria-selected', String(x.dataset.tab===TAB)));
+  $('#viewTitle').textContent = {today:'Today',stock:'Pieces',orders:'Orders'}[TAB];
+  ['today','stock','orders'].forEach(t => $('#v-'+t).classList.toggle('hide', t!==TAB));
+  render(); window.scrollTo(0,0);
+});
+function render(){
+  if (TAB==='today')  renderToday();
+  if (TAB==='stock')  renderStock();
+  if (TAB==='orders') renderOrders();
+}
+
+const sortSizes = (a,b) => {
+  const i = s => { const k = CONFIG.SIZES.indexOf(s); return k<0 ? 99 : k; };
+  return i(a.size) - i(b.size);
+};
+const primaryImg = p => (p.product_images||[]).slice()
+  .sort((a,b)=>(b.is_primary-a.is_primary)||a.sort_order-b.sort_order)[0];
+const totalStock = p => (p.variants||[]).reduce((s,v)=>s+v.stock,0);
+
+/* =====================================================================
+   TODAY
+   ===================================================================== */
+function renderToday(){
+  const conf = DB.orders.filter(o=>o.status==='confirmed');
+  const now = new Date();
+  const inMonth = o => {
+    const d = new Date(o.confirmed_at||o.created_at);
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  };
+  const ttd = conf.filter(o=>inMonth(o)&&o.currency==='TTD')
+    .reduce((s,o)=>s+Number(o.subtotal),0);
+  const usd = conf.filter(o=>inMonth(o)&&o.currency==='USD')
+    .reduce((s,o)=>s+Number(o.subtotal),0);
+  const pend = DB.orders.filter(o=>o.status==='pending');
+
+  const units = {};
+  conf.forEach(o => (o.order_items||[]).forEach(i =>
+    units[i.product_name] = (units[i.product_name]||0) + i.qty));
+  const best = Object.entries(units).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxU = best[0]?.[1] || 1;
+
+  const days = [...Array(14)].map((_,k)=>{
+    const d = new Date(); d.setDate(d.getDate()-(13-k));
+    return { d, total: conf.filter(o=>o.currency==='TTD' &&
+      new Date(o.confirmed_at||o.created_at).toDateString()===d.toDateString())
+      .reduce((s,o)=>s+Number(o.subtotal),0) };
+  });
+  const peak = Math.max(...days.map(x=>x.total), 1);
+
+  const low = [];
+  DB.products.filter(p=>p.status==='active').forEach(p =>
+    (p.variants||[]).forEach(v => { if (v.stock<=CONFIG.LOW_STOCK_AT) low.push({p,v}); }));
+  low.sort((a,b)=>a.v.stock-b.v.stock);
+
+  const web  = DB.orders.filter(o=>o.source==='cart_checkout'||o.source==='product_page');
+  const won  = web.filter(o=>o.status==='confirmed').length;
+  const rate = web.length ? Math.round(won/web.length*100) : 0;
+
+  $('#v-today').innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="k">This month</div>
+        <div class="v">$${ttd.toLocaleString()} <small>TTD</small></div></div>
+      <div class="stat"><div class="k">Waiting on you</div>
+        <div class="v">${pend.length} <small>order${pend.length===1?'':'s'}</small></div></div>
+    </div>
+    ${usd ? `<div class="card" style="padding:12px 16px"><div class="between">
+        <span class="k tiny dim" style="letter-spacing:.18em;text-transform:uppercase">
+          Also this month</span>
+        <span class="num">$${usd.toLocaleString()} USD</span></div></div>` : ''}
+
+    ${pend.length ? `<button class="btn pink" id="goPending" style="margin-bottom:16px">
+      Review ${pend.length} pending order${pend.length===1?'':'s'}</button>` : ''}
+
+    <div class="card">
+      <h2>Best sellers</h2>
+      <p class="dim tiny" style="margin:2px 0 10px;letter-spacing:.1em;
+        text-transform:uppercase">Units sold, all time</p>
+      ${best.length ? best.map(([n,q],k)=>`
+        <div class="rank"><span class="n">${k+1}</span>
+          <div class="grow">
+            <div class="small truncate">${esc(n)}</div>
+            <div class="bar2" style="width:${Math.round(q/maxU*100)}%"></div>
+          </div><span class="num">${q}</span></div>`).join('')
+        : `<p class="dim small">Nothing sold yet. Confirmed orders appear here.</p>`}
+    </div>
+
+    <div class="card">
+      <h2>Revenue</h2>
+      <p class="dim tiny" style="margin:2px 0 0;letter-spacing:.1em;
+        text-transform:uppercase">Last 14 days, TTD</p>
+      <div class="chart">${days.map(x=>`<div class="bar ${x.total===peak&&peak>0?'top':''}"
+        style="height:${Math.max(2, x.total/peak*100)}%"
+        title="${x.d.toLocaleDateString()} — $${x.total}"></div>`).join('')}</div>
+      <div class="axis">
+        <span>${days[0].d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+        <span class="num">$${days.reduce((s,x)=>s+x.total,0).toLocaleString()} total</span>
+        <span>Today</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Running low</h2>
+      <p class="dim tiny" style="margin:2px 0 10px;letter-spacing:.1em;
+        text-transform:uppercase">${CONFIG.LOW_STOCK_AT} or fewer left</p>
+      ${low.length ? low.slice(0,8).map(({p,v})=>`
+        <div class="rank"><div class="grow">
+          <div class="small truncate">${esc(p.name)}</div>
+          <div class="tiny dim">${esc(v.size)}</div></div>
+          <span class="num" style="color:${v.stock===0?'var(--bad)':'var(--warn)'}">
+            ${v.stock}</span></div>`).join('')
+        : DB.products.length
+          ? `<p class="dim small">Every size is stocked.</p>`
+          : `<p class="dim small">No pieces added yet.</p>`}
+    </div>
+
+    <div class="card">
+      <h2>Interest vs sales</h2>
+      <p class="dim tiny" style="margin:2px 0 12px;letter-spacing:.1em;
+        text-transform:uppercase">Checkouts started on the site</p>
+      <div class="between">
+        <div><div class="k tiny dim">STARTED</div><div class="v num"
+          style="font-family:var(--serif);font-size:26px">${web.length}</div></div>
+        <div><div class="k tiny dim">BOUGHT</div><div class="v num"
+          style="font-family:var(--serif);font-size:26px">${won}</div></div>
+        <div><div class="k tiny dim">RATE</div><div class="v num"
+          style="font-family:var(--serif);font-size:26px">${rate}%</div></div>
+      </div>
+    </div>`;
+
+  const g = $('#goPending');
+  if (g) g.onclick = () => document.querySelector('[data-tab="orders"]').click();
+}
+
+/* =====================================================================
+   PIECES
+   ===================================================================== */
+let q = '', filterCat = '';
+function renderStock(){
+  const list = DB.products.filter(p =>
+    (!q || p.name.toLowerCase().includes(q.toLowerCase())) &&
+    (!filterCat || p.cat === filterCat));
+
+  $('#v-stock').innerHTML = `
+    <button class="btn" id="newProduct" style="margin-bottom:16px">Add a piece</button>
+    <input type="search" id="sq" placeholder="Search pieces" value="${esc(q)}"
+      style="margin-bottom:10px">
+    <div class="seg">
+      ${[['','All'],['clothing','Clothing'],['swimwear','Swimwear'],['thrift','Thrift']]
+        .map(([v,l])=>`<button data-cat="${v}" aria-selected="${filterCat===v}">${l}</button>`).join('')}
+    </div>
+
+    ${list.length ? list.map(p=>{
+      const vs = (p.variants||[]).slice().sort(sortSizes);
+      const img = primaryImg(p);
+      const out = totalStock(p) === 0;
+      return `<button class="rowbtn" data-product="${p.id}">
+        <div class="flex">
+          <div style="width:58px;height:76px;overflow:hidden;background:var(--pink-wash);flex:none">
+            ${img ? `<img src="${esc(img.url)}" alt="" loading="lazy"
+              style="width:100%;height:100%;object-fit:cover">` : ''}
+          </div>
+          <div class="grow">
+            <div class="between" style="gap:8px">
+              <h3 class="truncate">${esc(p.name)}</h3>
+              ${p.status==='draft' ? `<span class="pill draft">Hidden</span>`
+                : out ? `<span class="pill">Sold out</span>`
+                : p.featured ? `<span class="pill on">Home</span>` : ''}
+            </div>
+            <div class="small dim">${money(p.price_ttd)}
+              · ${esc(p.color||'—')}
+              · <span class="num">${totalStock(p)}</span> in stock</div>
+            ${vs.length ? `<div class="run">${vs.map(v=>`
+              <div class="cell ${v.stock===0?'zero':(v.stock<=CONFIG.LOW_STOCK_AT?'low':'')}">
+                <span class="sz">${esc(v.size)}</span>
+                <span class="qty">${v.stock}</span></div>`).join('')}</div>`
+              : `<div class="tiny dim" style="margin-top:6px">No sizes yet</div>`}
+          </div>
+        </div></button>`;
+    }).join('') : `<div class="empty"><div class="big">Nothing here</div>
+      <p class="small">Add a piece to start tracking it.</p></div>`}`;
+
+  $('#newProduct').onclick = () => openProduct(null);
+  $('#sq').oninput = e => {
+    q = e.target.value; const pos = e.target.selectionStart; renderStock();
+    const el = $('#sq'); el.focus(); el.setSelectionRange(pos,pos);
+  };
+  document.querySelectorAll('[data-cat]').forEach(b =>
+    b.onclick = () => { filterCat = b.dataset.cat; renderStock(); });
+  document.querySelectorAll('[data-product]').forEach(b =>
+    b.onclick = () => openProduct(b.dataset.product));
+}
+
+/* =====================================================================
+   PIECE EDITOR
+   ===================================================================== */
+let draft = null, slugTouched = false;
+
+function openProduct(id){
+  const p = id ? DB.products.find(x=>x.id===id) : null;
+  draft = p ? JSON.parse(JSON.stringify(p)) : {
+    id:null, slug:'', name:'', tag:'', cat:'clothing', sub:'all', color:'',
+    price_ttd:0, price_usd:0, description:'', details:'', care:'',
+    featured:false, status:'active', sort_order:99, variants:[], product_images:[]
+  };
+  draft.variants = (draft.variants||[]).sort(sortSizes);
+  slugTouched = !!p;
+  drawSheet();
+}
+
+function drawSheet(){
+  const d = draft;
+  const subs = CONFIG.SUBS[d.cat] || ['all'];
+  $('#sheetHost').innerHTML = `
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="shead">
+      <h2>${d.id ? 'Edit piece' : 'New piece'}</h2>
+      <button class="linkbtn" id="closeSheet">Close</button>
+    </div>
+    <div class="sbody">
+      <label class="field"><span>Name</span>
+        <input type="text" id="fName" value="${esc(d.name)}"
+          placeholder="The name shoppers will see"></label>
+
+      <div class="two">
+        <label class="field"><span>Price TTD</span>
+          <input type="number" id="fTtd" inputmode="decimal" step="1" min="0"
+            value="${d.price_ttd}"></label>
+        <label class="field"><span>Price USD</span>
+          <input type="number" id="fUsd" inputmode="decimal" step="1" min="0"
+            value="${d.price_usd}"></label>
+      </div>
+
+      <div class="two">
+        <label class="field"><span>Category</span>
+          <select id="fCat">
+            ${['clothing','swimwear','thrift'].map(c=>`<option value="${c}"
+              ${d.cat===c?'selected':''}>${c[0].toUpperCase()+c.slice(1)}</option>`).join('')}
+          </select></label>
+        <label class="field"><span>Section</span>
+          <select id="fSub">${subs.map(s=>`<option value="${s}" ${d.sub===s?'selected':''}>
+            ${CONFIG.SUBLABEL[s]||s}</option>`).join('')}</select></label>
+      </div>
+
+      <div class="two">
+        <label class="field"><span>Colourway</span>
+          <input type="text" id="fColor" value="${esc(d.color)}" placeholder="One colourway per piece"></label>
+        <label class="field"><span>Badge</span>
+          <select id="fTag"><option value="">No badge</option>
+            ${CONFIG.TAGS.map(t=>`<option value="${esc(t)}" ${d.tag===t?'selected':''}>
+              ${esc(t)}</option>`).join('')}</select></label>
+      </div>
+
+      <label class="field"><span>On the site</span>
+        <select id="fStatus">
+          <option value="active" ${d.status==='active'?'selected':''}>Live — shoppers can see it</option>
+          <option value="draft"  ${d.status==='draft' ?'selected':''}>Hidden — not ready yet</option>
+        </select></label>
+
+      <label class="field" style="display:flex;gap:10px;align-items:center">
+        <input type="checkbox" id="fFeat" ${d.featured?'checked':''}
+          style="width:auto;margin:0">
+        <span style="margin:0;letter-spacing:.06em;text-transform:none;font-size:13px;
+          color:var(--fg)">Show in the four-piece grid on the homepage</span>
+      </label>
+
+      <label class="field"><span>Description</span>
+        <textarea id="fDesc" placeholder="The line that sells it">${esc(d.description)}</textarea></label>
+      <label class="field"><span>Details</span>
+        <textarea id="fDet" placeholder="Cut, lining, neckline, hardware"
+          style="min-height:64px">${esc(d.details)}</textarea></label>
+      <label class="field"><span>Care</span>
+        <textarea id="fCare" placeholder="Washing instructions"
+          style="min-height:56px">${esc(d.care)}</textarea></label>
+
+      <label class="field"><span>Web address</span>
+        <input type="text" id="fSlug" value="${esc(d.slug)}" placeholder="Filled in from the name"></label>
+
+      <h3 style="margin:24px 0 4px">Photos</h3>
+      <p class="dim tiny" style="margin:0 0 10px">
+        The first photo is the one shoppers see on the grid.</p>
+      <div class="imgs" id="imgGrid">
+        ${(d.product_images||[]).slice()
+          .sort((a,b)=>(b.is_primary-a.is_primary)||a.sort_order-b.sort_order)
+          .map(im=>`<div class="thumb ${im.is_primary?'primary':''}">
+            <img src="${esc(im.url)}" alt="">
+            <button class="x" data-delimg="${im.id}" aria-label="Remove photo">×</button>
+            ${im.is_primary?'':`<button class="star" data-primary="${im.id}">Make first</button>`}
+          </div>`).join('')}
+        <button class="add" id="addImg">${d.id ? '+ Add photos'
+          : 'Save the piece first,<br>then add photos'}</button>
+      </div>
+      <input type="file" id="fileIn" accept="image/*" multiple class="hide">
+
+      <h3 style="margin:26px 0 4px">Sizes in stock</h3>
+      <p class="dim tiny" style="margin:0 0 10px">
+        A size at zero shows as sold out on the site instead of disappearing.</p>
+      <div id="vList">${d.variants.map(vRow).join('')}</div>
+      <div class="sizeadd">
+        ${CONFIG.SIZES.map(s=>`<button type="button" data-addsize="${s}">+ ${s}</button>`).join('')}
+      </div>
+
+      ${d.id ? `<button class="btn danger" id="delProduct" style="margin-top:30px">
+          Archive this piece</button>
+        <p class="dim tiny" style="text-align:center;margin-top:8px">
+          It comes off the site. Past sales stay in your records.</p>`:''}
+    </div>
+    <div class="sfoot">
+      <button class="btn ghost" id="cancelSheet">Cancel</button>
+      <button class="btn" id="saveProduct">Save</button>
+    </div>
+  </div>`;
+  wireSheet();
+}
+
+function vRow(v,i){
+  return `<div class="vrow" data-vi="${i}">
+    <input type="text" class="vSize" value="${esc(v.size)}" placeholder="Size">
+    <div class="stepper">
+      <button type="button" data-step="-1">−</button>
+      <input type="number" class="vStock" value="${v.stock}" min="0" inputmode="numeric">
+      <button type="button" data-step="1">+</button>
+    </div>
+    <button class="del" data-delvar="${i}" aria-label="Remove size">×</button>
+  </div>`;
+}
+
+function readSheet(){
+  const d = draft;
+  d.name        = $('#fName').value.trim();
+  d.price_ttd   = Number($('#fTtd').value)||0;
+  d.price_usd   = Number($('#fUsd').value)||0;
+  d.cat         = $('#fCat').value;
+  d.sub         = $('#fSub').value;
+  d.color       = $('#fColor').value.trim();
+  d.tag         = $('#fTag').value || null;
+  d.status      = $('#fStatus').value;
+  d.featured    = $('#fFeat').checked;
+  d.description = $('#fDesc').value.trim();
+  d.details     = $('#fDet').value.trim();
+  d.care        = $('#fCare').value.trim();
+  d.slug        = slugify($('#fSlug').value) || slugify(d.name);
+  d.variants = [...document.querySelectorAll('.vrow')].map((r,i)=>({
+    ...(d.variants[i]||{}),
+    size:  r.querySelector('.vSize').value.trim() || 'One size',
+    stock: Math.max(0, parseInt(r.querySelector('.vStock').value)||0)
+  }));
+}
+
+function wireSheet(){
+  const close = () => { $('#sheetHost').innerHTML=''; draft=null; };
+  $('#scrim').onclick = close; $('#closeSheet').onclick = close; $('#cancelSheet').onclick = close;
+
+  $('#fName').oninput = () => {
+    if (!slugTouched) $('#fSlug').value = slugify($('#fName').value);
+  };
+  $('#fSlug').oninput = () => { slugTouched = true; };
+  $('#fCat').onchange = () => { readSheet(); drawSheet(); };
+
+  document.querySelectorAll('[data-addsize]').forEach(b => b.onclick = () => {
+    readSheet();
+    const s = b.dataset.addsize;
+    if (draft.variants.some(v=>v.size===s)){ toast(s + ' is already listed.'); return; }
+    draft.variants.push({ size:s, stock:0 });
+    draft.variants.sort(sortSizes);
+    $('#vList').innerHTML = draft.variants.map(vRow).join('');
+    wireVars();
+  });
+  wireVars();
+
+  document.querySelectorAll('[data-delimg]').forEach(b =>
+    b.onclick = () => deleteImage(b.dataset.delimg));
+  document.querySelectorAll('[data-primary]').forEach(b =>
+    b.onclick = () => setPrimary(b.dataset.primary));
+  $('#addImg').onclick = () => {
+    if (!draft.id){ toast('Save the piece first, then add photos.'); return; }
+    $('#fileIn').click();
+  };
+  $('#fileIn').onchange = e => uploadImages([...e.target.files]);
+
+  $('#saveProduct').onclick = saveProduct;
+  const del = $('#delProduct'); if (del) del.onclick = archiveProduct;
+}
+
+function wireVars(){
+  document.querySelectorAll('.vrow [data-step]').forEach(b => b.onclick = () => {
+    const inp = b.parentElement.querySelector('.vStock');
+    inp.value = Math.max(0, (parseInt(inp.value)||0) + Number(b.dataset.step));
+  });
+  document.querySelectorAll('[data-delvar]').forEach(b => b.onclick = () => {
+    readSheet();
+    draft.variants.splice(Number(b.dataset.delvar),1);
+    $('#vList').innerHTML = draft.variants.map(vRow).join('');
+    wireVars();
+  });
+}
+
+async function saveProduct(){
+  readSheet();
+  if (!draft.name){ toast('Give the piece a name first.'); return; }
+  if (!draft.slug){ toast('The web address can\u2019t be empty.'); return; }
+
+  const btn = $('#saveProduct');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+
+  const row = {
+    slug:draft.slug, name:draft.name, tag:draft.tag, cat:draft.cat, sub:draft.sub,
+    color:draft.color, price_ttd:draft.price_ttd, price_usd:draft.price_usd,
+    description:draft.description, details:draft.details, care:draft.care,
+    featured:draft.featured, status:draft.status
+  };
+
+  let pid = draft.id;
+  if (pid){
+    const { error } = await sb.from('products').update(row).eq('id', pid);
+    if (error) return failSave(btn, error);
+  } else {
+    const { data, error } = await sb.from('products').insert(row).select().single();
+    if (error) return failSave(btn, error);
+    pid = data.id;
+  }
+
+  const keep = [];
+  for (const v of draft.variants){
+    const payload = { product_id:pid, size:v.size, stock:v.stock };
+    const { data, error } = await sb.from('variants')
+      .upsert(payload, { onConflict:'product_id,size' }).select().single();
+    if (error) return failSave(btn, error);
+    keep.push(data.id);
+  }
+  const had = (DB.products.find(p=>p.id===pid)?.variants||[]).map(v=>v.id);
+  const gone = had.filter(id => !keep.includes(id));
+  if (gone.length) await sb.from('variants').delete().in('id', gone);
+
+  await load(); $('#sheetHost').innerHTML=''; draft=null; render();
+  toast('Saved');
+}
+function failSave(btn, error){
+  btn.disabled = false; btn.textContent = 'Save';
+  toast(error.message?.includes('duplicate') && error.message.includes('slug')
+    ? 'Another piece already uses that web address.'
+    : (error.message || 'Couldn\u2019t save. Try again.'));
+}
+
+async function archiveProduct(){
+  if (!confirm('Archive this piece? It comes off the site right away.')) return;
+  await sb.from('products').update({ status:'archived' }).eq('id', draft.id);
+  await load(); $('#sheetHost').innerHTML=''; draft=null; render();
+  toast('Archived');
+}
+
+/* ---------------- photos ---------------- */
+async function uploadImages(files){
+  if (!files.length) return;
+  $('#imgGrid').insertAdjacentHTML('beforeend',
+    `<div class="add"><span class="spin" style="border-color:var(--line);
+      border-top-color:var(--fg)"></span></div>`);
+  const n = (draft.product_images||[]).length;
+
+  for (const [k,file] of files.entries()){
+    const ext  = (file.name.split('.').pop()||'jpg').toLowerCase();
+    const path = `${draft.id}/${crypto.randomUUID()}.${ext}`;
+    const { error:upErr } = await sb.storage.from('product-images')
+      .upload(path, file, { cacheControl:'3600', upsert:false });
+    if (upErr){ toast('Photo upload failed: ' + upErr.message); break; }
+
+    const { data:{ publicUrl } } = sb.storage.from('product-images').getPublicUrl(path);
+    const { data, error } = await sb.from('product_images').insert({
+      product_id:draft.id, url:publicUrl, storage_path:path,
+      sort_order:n+k, is_primary: n===0 && k===0
+    }).select().single();
+    if (error){ toast(error.message); break; }
+    draft.product_images.push(data);
+  }
+  drawSheet();
+}
+
+async function deleteImage(id){
+  const im = draft.product_images.find(x=>x.id===id);
+  if (im?.storage_path) await sb.storage.from('product-images').remove([im.storage_path]);
+  await sb.from('product_images').delete().eq('id', id);
+  draft.product_images = draft.product_images.filter(x=>x.id!==id);
+  if (im?.is_primary && draft.product_images[0]) await setPrimary(draft.product_images[0].id, true);
+  else drawSheet();
+}
+
+async function setPrimary(id, quiet){
+  await sb.from('product_images').update({is_primary:false}).eq('product_id', draft.id);
+  await sb.from('product_images').update({is_primary:true}).eq('id', id);
+  draft.product_images.forEach(x => x.is_primary = (x.id===id));
+  drawSheet();
+  if (!quiet) toast('That photo shows first now');
+}
+
+/* =====================================================================
+   ORDERS
+   ===================================================================== */
+let orderFilter = 'pending';
+function renderOrders(){
+  const list = DB.orders.filter(o=>o.status===orderFilter);
+  const c = s => DB.orders.filter(o=>o.status===s).length;
+
+  $('#v-orders').innerHTML = `
+    <button class="btn" id="newOrder" style="margin-bottom:16px">Record a sale</button>
+    <div class="seg">
+      ${['pending','confirmed','cancelled'].map(s=>`
+        <button data-filter="${s}" aria-selected="${orderFilter===s}">
+          ${s} ${c(s)?`(${c(s)})`:''}</button>`).join('')}
+    </div>
+    ${list.length ? list.map(o=>{
+      const when = new Date(o.created_at).toLocaleString('en-GB',
+        {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const src = {cart_checkout:'Cart checkout', product_page:'Product page',
+        instagram:'Instagram', manual:'Entered by hand', in_person:'In person'}[o.source]||o.source;
+      return `<div class="ticket ${o.status!=='pending'?'settled':''}">
+        <div class="between"><span class="ref">${esc(o.ref)}</span>
+          <span class="tiny dim">${when}</span></div>
+        <div style="margin-top:7px;font-weight:400">${esc(o.customer_name||'No name given')}
+          ${o.customer_handle?`<span class="dim small">· ${esc(o.customer_handle)}</span>`:''}</div>
+        <div class="tiny dim">${esc(src)}</div>
+        <ul>${(o.order_items||[]).map(i=>`<li>
+          <span class="grow truncate">${esc(i.product_name)}
+            ${i.size?`<span class="dim">· ${esc(i.size)}</span>`:''}
+            ${i.qty>1?`<span class="dim num"> ×${i.qty}</span>`:''}</span>
+          <span class="num">${money(i.unit_price*i.qty, o.currency)}</span></li>`).join('')}</ul>
+        ${o.note?`<p class="tiny dim" style="margin-bottom:9px">“${esc(o.note)}”</p>`:''}
+        <div class="between"><span class="tiny dim"
+          style="letter-spacing:.16em;text-transform:uppercase">Total</span>
+          <span class="num" style="font-size:16px">${money(o.subtotal,o.currency)}</span></div>
+        <div class="acts">
+          ${o.status==='pending'?`
+            <button class="btn pink sm" data-confirm="${o.id}">Confirm sale</button>
+            <button class="btn ghost sm" data-cancel="${o.id}">Didn’t buy</button>`:''}
+          ${o.status==='confirmed'?`
+            <button class="btn ghost sm" data-undo="${o.id}">Undo sale</button>`:''}
+          ${o.status==='cancelled'?`
+            <button class="btn ghost sm" data-reopen="${o.id}">Back to pending</button>`:''}
+        </div></div>`;
+    }).join('') : `<div class="empty">
+      <div class="big">${orderFilter==='pending'?'All caught up':'Nothing here'}</div>
+      <p class="small">${orderFilter==='pending'
+        ? 'Orders land here the moment someone checks out on the site.'
+        : 'Orders you '+orderFilter+' show up here.'}</p></div>`}`;
+
+  document.querySelectorAll('[data-filter]').forEach(b =>
+    b.onclick = () => { orderFilter = b.dataset.filter; renderOrders(); });
+  document.querySelectorAll('[data-confirm]').forEach(b =>
+    b.onclick = () => act(b,'confirm_order',b.dataset.confirm,'Sale confirmed, stock updated'));
+  document.querySelectorAll('[data-undo]').forEach(b =>
+    b.onclick = () => act(b,'unconfirm_order',b.dataset.undo,'Undone, stock put back'));
+  document.querySelectorAll('[data-cancel]').forEach(b =>
+    b.onclick = () => setStatus(b,b.dataset.cancel,'cancelled','Moved to cancelled'));
+  document.querySelectorAll('[data-reopen]').forEach(b =>
+    b.onclick = () => setStatus(b,b.dataset.reopen,'pending','Back in pending'));
+  $('#newOrder').onclick = openManual;
+}
+
+async function act(btn, fn, id, msg){
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+  const { error } = await sb.rpc(fn, { p_order_id:id });
+  if (error){ toast(error.message); btn.disabled=false; return; }
+  await load(); renderOrders(); toast(msg);
+}
+async function setStatus(btn, id, status, msg){
+  btn.disabled = true;
+  const { error } = await sb.from('orders').update({ status }).eq('id', id);
+  if (error){ toast(error.message); btn.disabled=false; return; }
+  await load(); renderOrders(); toast(msg);
+}
+
+/* =====================================================================
+   RECORD A SALE BY HAND
+   ===================================================================== */
+let cart = [], cartCur = 'TTD';
+function openManual(){ cart = []; cartCur = 'TTD'; drawManual(); }
+
+function drawManual(){
+  const total = cart.reduce((s,l)=>s+l.unit_price*l.qty, 0);
+  $('#sheetHost').innerHTML = `
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="shead"><h2>Record a sale</h2>
+      <button class="linkbtn" id="closeSheet">Close</button></div>
+    <div class="sbody">
+      <p class="dim small" style="margin-bottom:16px">
+        For a sale that happened in a DM or in person. Stock comes down straight away.</p>
+
+      <div class="seg" style="margin-bottom:16px">
+        ${['TTD','USD'].map(c=>`<button data-cur="${c}"
+          aria-selected="${cartCur===c}">Paid in ${c}</button>`).join('')}
+      </div>
+
+      <label class="field"><span>Add a piece</span>
+        <select id="mVariant"><option value="">Choose a size…</option>
+          ${DB.products.map(p => (p.variants||[]).slice().sort(sortSizes).map(v=>`
+            <option value="${v.id}">${esc(p.name)} — ${esc(v.size)} (${v.stock} left)</option>`)
+            .join('')).join('')}
+        </select></label>
+
+      ${cart.length ? `<div class="card" style="padding:12px">
+        ${cart.map((l,i)=>`<div class="between"
+          style="padding:7px 0;border-bottom:1px dashed var(--line)">
+          <div class="grow"><div class="small truncate">${esc(l.product_name)}</div>
+            <div class="tiny dim">${esc(l.size)} · ${money(l.unit_price,cartCur)} each</div></div>
+          <div class="stepper" style="width:92px">
+            <button type="button" data-cq="${i}:-1">−</button>
+            <input type="number" value="${l.qty}" data-cqi="${i}" min="1">
+            <button type="button" data-cq="${i}:1">+</button></div>
+          <button class="del" data-cdel="${i}">×</button></div>`).join('')}
+        <div class="between" style="padding-top:11px">
+          <span class="tiny dim" style="letter-spacing:.16em;text-transform:uppercase">Total</span>
+          <span class="num" style="font-size:17px">${money(total,cartCur)}</span></div>
+      </div>` : `<p class="dim small" style="margin-bottom:16px">No pieces added yet.</p>`}
+
+      <label class="field"><span>Customer name</span>
+        <input type="text" id="mName" placeholder="Optional"></label>
+      <label class="field"><span>Instagram or WhatsApp</span>
+        <input type="text" id="mHandle" placeholder="Optional"></label>
+      <label class="field"><span>Note</span>
+        <textarea id="mNote" placeholder="Delivery, deposit, anything to remember"></textarea></label>
+    </div>
+    <div class="sfoot">
+      <button class="btn ghost" id="cancelSheet">Cancel</button>
+      <button class="btn" id="saveOrder" ${cart.length?'':'disabled'}>
+        Record ${money(total,cartCur)}</button>
+    </div>
+  </div>`;
+
+  const close = () => { $('#sheetHost').innerHTML=''; cart=[]; };
+  $('#scrim').onclick = close; $('#closeSheet').onclick = close; $('#cancelSheet').onclick = close;
+
+  document.querySelectorAll('[data-cur]').forEach(b => b.onclick = () => {
+    cartCur = b.dataset.cur;
+    cart.forEach(l => {
+      const p = DB.products.find(p=>p.id===l.product_id);
+      if (p) l.unit_price = Number(cartCur==='TTD' ? p.price_ttd : p.price_usd);
+    });
+    drawManual();
+  });
+
+  $('#mVariant').onchange = e => {
+    const vid = e.target.value; if (!vid) return;
+    const p = DB.products.find(p => (p.variants||[]).some(v=>v.id===vid));
+    const v = p.variants.find(v=>v.id===vid);
+    const line = cart.find(l=>l.variant_id===vid);
+    if (line) line.qty++;
+    else cart.push({ product_id:p.id, variant_id:v.id, product_name:p.name, size:v.size,
+      unit_price:Number(cartCur==='TTD'?p.price_ttd:p.price_usd), qty:1 });
+    drawManual();
+  };
+  document.querySelectorAll('[data-cq]').forEach(b => b.onclick = () => {
+    const [i,d] = b.dataset.cq.split(':').map(Number);
+    cart[i].qty = Math.max(1, cart[i].qty + d); drawManual();
+  });
+  document.querySelectorAll('[data-cqi]').forEach(inp => inp.onchange = () => {
+    cart[Number(inp.dataset.cqi)].qty = Math.max(1, parseInt(inp.value)||1); drawManual();
+  });
+  document.querySelectorAll('[data-cdel]').forEach(b => b.onclick = () => {
+    cart.splice(Number(b.dataset.cdel),1); drawManual();
+  });
+  $('#saveOrder').onclick = saveManual;
+}
+
+async function saveManual(){
+  const btn = $('#saveOrder');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+  const subtotal = cart.reduce((s,l)=>s+l.unit_price*l.qty, 0);
+
+  const { data:order, error } = await sb.from('orders').insert({
+    source:'manual', status:'pending', currency:cartCur, subtotal,
+    customer_name:   $('#mName').value.trim()   || null,
+    customer_handle: $('#mHandle').value.trim() || null,
+    note:            $('#mNote').value.trim()   || null
+  }).select().single();
+  if (error){ toast(error.message); btn.disabled=false; return; }
+
+  const { error:iErr } = await sb.from('order_items')
+    .insert(cart.map(l => ({ ...l, order_id:order.id })));
+  if (iErr){ toast(iErr.message); btn.disabled=false; return; }
+
+  const { error:cErr } = await sb.rpc('confirm_order', { p_order_id:order.id });
+  if (cErr){ toast(cErr.message); btn.disabled=false; return; }
+
+  await load(); $('#sheetHost').innerHTML=''; cart=[];
+  orderFilter='confirmed'; render();
+  toast('Sale recorded, stock updated');
+}
+
+boot();
+</script>
+</body>
+</html>
