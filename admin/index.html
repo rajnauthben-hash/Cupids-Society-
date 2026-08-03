@@ -486,7 +486,9 @@ function renderStock(){
     (!filterCat || p.cat === filterCat));
 
   $('#v-stock').innerHTML = `
-    <button class="btn" id="newProduct" style="margin-bottom:16px">Add a piece</button>
+    <button class="btn" id="newProduct" style="margin-bottom:6px">Add a piece</button>
+    <p class="dim tiny" style="margin-bottom:14px;text-align:center;letter-spacing:.06em">
+      Tap any piece below to edit it</p>
     <input type="search" id="sq" placeholder="Search pieces" value="${esc(q)}"
       style="margin-bottom:10px">
     <div class="seg">
@@ -500,9 +502,10 @@ function renderStock(){
       const out = totalStock(p) === 0;
       return `<button class="rowbtn" data-product="${p.id}">
         <div class="flex">
-          <div style="width:58px;height:76px;overflow:hidden;background:var(--pink-wash);flex:none">
-            ${img ? `<img src="${esc(img.url)}" alt="" loading="lazy"
-              style="width:100%;height:100%;object-fit:cover">` : ''}
+          <div style="width:58px;height:76px;overflow:hidden;background:var(--pink-wash);flex:none;display:grid;place-items:center">
+            ${img
+              ? `<img src="${esc(img.url)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover">`
+              : `<span style="font-size:9px;color:var(--dim);text-align:center;letter-spacing:.06em;line-height:1.4;padding:4px">No<br>photo</span>`}
           </div>
           <div class="grow">
             <div class="between" style="gap:8px">
@@ -520,6 +523,7 @@ function renderStock(){
                 <span class="qty">${v.stock}</span></div>`).join('')}</div>`
               : `<div class="tiny dim" style="margin-top:6px">No sizes yet</div>`}
           </div>
+          <div style="color:var(--dim);font-size:20px;flex:none;padding-left:10px;align-self:center">›</div>
         </div></button>`;
     }).join('') : `<div class="empty"><div class="big">Nothing here</div>
       <p class="small">Add a piece to start tracking it.</p></div>`}`;
@@ -645,10 +649,17 @@ function drawSheet(){
         ${CONFIG.SIZES.map(s=>`<button type="button" data-addsize="${s}">+ ${s}</button>`).join('')}
       </div>
 
-      ${d.id ? `<button class="btn danger" id="delProduct" style="margin-top:30px">
-          Archive this piece</button>
-        <p class="dim tiny" style="text-align:center;margin-top:8px">
-          It comes off the site. Past sales stay in your records.</p>`:''}
+      ${d.id ? `
+        <hr style="border:none;border-top:1px solid var(--line);margin:28px 0 20px">
+        <button class="btn danger" id="delProduct">
+          Hide from site (archive)</button>
+        <p class="dim tiny" style="text-align:center;margin:6px 0 14px">
+          Comes off the shop. Past orders stay in your records. You can re-list it later.</p>
+        <button class="btn" id="hardDeleteProduct"
+          style="background:var(--bad);border:none;margin-top:2px">
+          Permanently delete</button>
+        <p class="dim tiny" style="text-align:center;margin-top:6px">
+          Cannot be undone. Use this only if the piece was added by mistake.</p>`:''}
     </div>
     <div class="sfoot">
       <button class="btn ghost" id="cancelSheet">Cancel</button>
@@ -725,6 +736,7 @@ function wireSheet(){
 
   $('#saveProduct').onclick = saveProduct;
   const del = $('#delProduct'); if (del) del.onclick = archiveProduct;
+  const hardDel = $('#hardDeleteProduct'); if (hardDel) hardDel.onclick = hardDeleteProduct;
 }
 
 function wireVars(){
@@ -788,10 +800,21 @@ function failSave(btn, error){
 }
 
 async function archiveProduct(){
-  if (!confirm('Archive this piece? It comes off the site right away.')) return;
+  if (!confirm('Hide "' + draft.name + '" from the site?')) return;
   await sb.from('products').update({ status:'archived' }).eq('id', draft.id);
   await load(); $('#sheetHost').innerHTML=''; draft=null; render();
-  toast('Archived');
+  toast('Hidden from the site');
+}
+
+async function hardDeleteProduct(){
+  if (!confirm('Permanently delete "' + draft.name + '"? This cannot be undone.')) return;
+  for (const im of (draft.product_images||[])){
+    if (im.storage_path) await sb.storage.from('product-images').remove([im.storage_path]);
+  }
+  const { error } = await sb.from('products').delete().eq('id', draft.id);
+  if (error){ toast(error.message||'Delete failed'); return; }
+  await load(); $('#sheetHost').innerHTML=''; draft=null; render();
+  toast('Deleted permanently');
 }
 
 /* ---------------- photos ---------------- */
