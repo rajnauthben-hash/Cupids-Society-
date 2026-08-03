@@ -124,6 +124,9 @@ button{font-family:'Jost',sans-serif}
 .hero{position:relative;height:100vh;min-height:620px;max-height:900px;overflow:hidden}
 @media(min-aspect-ratio:4/3){.hero{height:82vh;max-height:780px}}
 .hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 20%}
+.hero-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
+.hero-vid-mob{display:none}
+@media(max-width:768px){.hero-vid-desk{display:none}.hero-vid-mob{display:block}}
 .hero-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(24,12,20,.55) 0%,rgba(24,12,20,.15) 30%,rgba(24,12,20,0) 55%,rgba(24,12,20,.1) 80%,rgba(24,12,20,.35) 100%)}
 .hero-content{
   position:absolute;
@@ -655,7 +658,12 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 <div id="page-home" class="page active">
 
   <section class="hero">
-    <img data-img="RHINE" alt="Cupid&#8217;s Society &mdash; New Collection">
+    <video class="hero-vid hero-vid-desk" autoplay muted loop playsinline>
+      <source src="assets/hero-landscape.mp4" type="video/mp4">
+    </video>
+    <video class="hero-vid hero-vid-mob" autoplay muted loop playsinline>
+      <source src="assets/hero-portrait.mp4" type="video/mp4">
+    </video>
     <div class="hero-ov"></div>
     <div class="hero-content">
       <h1 class="hero-h1" style="font-family:'Ballet',cursive;font-style:normal;color:#F1BBD3">Welcome Angel</h1>
