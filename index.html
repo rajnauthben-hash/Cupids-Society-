@@ -647,6 +647,10 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
         <a onclick="quickShop(null,'clothing','jumpsuits')">Jumpsuits</a>
       </div>
     </div>
+    <div class="cat-drop">
+      <button onclick="quickShop(this,'thrift','all')">Thrift</button>
+      <div class="cat-drop-panel" id="thrift-nav-panel"></div>
+    </div>
     <button onclick="navPlain('lookbook')">Lookbook</button>
     <button onclick="navPlain('society')">The Society</button>
     <button onclick="navPlain('contact')">Contact</button>
@@ -1194,7 +1198,7 @@ let PRODS = [
   {id:'pink-horizon',name:'Pink Horizon Bikini',cat:'swimwear',sub:'bikini-sets',tag:'New In',ttd:700,usd:103,sizes:['XS','S','M','L','XL'],color:'Pink/Black',img:'DUSK',
    desc:"Emerge from the water like the main character. Bold pink with black trim — for the woman who makes dusk look like golden hour.",
    details:"Scoop neck bikini top with black binding. High-cut briefs with ring hardware. Cupid's Society logo.",care:"Hand wash. Do not tumble dry."},
-  {id:'thrifted-slip',name:'Thrifted Silk Slip',cat:'thrift',sub:'all',tag:'One of One',ttd:400,usd:59,sizes:['S','M'],color:'Champagne',img:'WHITE',
+  {id:'thrifted-slip',name:'Thrifted Silk Slip',cat:'clothing',sub:'dresses',is_thrift:true,tag:'One of One',ttd:400,usd:59,sizes:['S','M'],color:'Champagne',img:'WHITE',
    desc:"A one-of-one find, hand-selected and restyled. Pre-loved with the same Cupid Society standard — because sustainable can still be sexy.",
    details:"Secondhand silk slip dress, thrifted and quality-checked. Only one available.",care:"Hand wash cold. Hang dry."}
 ];
@@ -1215,13 +1219,13 @@ async function loadFromSupabase(){
       const sizes=vArr.length?vArr.map(function(v){return v.size;}):['XS','S','M','L','XL'];
       const stocks={};vArr.forEach(function(v){stocks[v.size]=v.stock;});
       const pimgs=(p.product_images||[]).sort(function(a,b){return a.sort_order-b.sort_order;});
-      PRODS.push({id:p.slug,name:p.name,cat:p.cat,sub:p.sub,tag:p.tag||'',
+      PRODS.push({id:p.slug,name:p.name,cat:p.cat,sub:p.sub,is_thrift:!!p.is_thrift,tag:p.tag||'',
         ttd:parseFloat(p.price_ttd),usd:parseFloat(p.price_usd),
         sizes:sizes,color:p.color||'',img:SLUG_IMG[p.slug]||null,
         desc:p.description||'',details:p.details||'',care:p.care||'',
         _imgUrl:pimgs.length?pimgs[0].url:null,_stocks:stocks});
     });
-    renderHomeGrid();renderShopGrid();
+    renderHomeGrid();renderShopGrid();buildThriftNav();
   }catch(e){console.warn('Supabase unavailable, using local data:',e);}
 }
 async function createSBOrder(items,total){
@@ -1282,6 +1286,7 @@ function buildCard(p){
   card.className = 'pcard';
   card.dataset.cat = p.cat;
   card.dataset.sub = p.sub;
+  card.dataset.thrift = p.is_thrift ? 'true' : 'false';
   card.dataset.id = p.id;
   card.dataset.ttd = p.ttd;
   const badgeClass = (p.tag === 'New In' || p.tag === 'Bestseller') ? 'pk' : '';
@@ -1293,7 +1298,7 @@ function buildCard(p){
       '<button class="pheart" data-pid="'+p.id+'" onclick="event.stopPropagation();toggleWL(this,\''+p.id+'\')" aria-label="Wishlist">'+(wl.has(p.id)?'\u2665':'\u2661')+'</button>' +
     '</div>' +
     '<div class="pc-body">' +
-      '<p class="pc-cat">'+(p.cat==='clothing'?'Clothing':p.cat==='swimwear'?'Swimwear':'Thrift')+'</p>' +
+      '<p class="pc-cat">'+(p.is_thrift?'Thrift':p.cat==='clothing'?'Clothing':'Swimwear')+'</p>' +
       '<p class="pc-name" style="cursor:pointer" onclick="openProduct(\''+p.id+'\')">'+p.name+'</p>' +
       '<p class="pc-price" data-ttd="TTD $'+p.ttd+'" data-usd="USD $'+p.usd+'">'+(currency==='TTD'?'TTD $'+p.ttd:'USD $'+p.usd)+'<small>/ '+(currency==='TTD'?'USD $'+p.usd:'TTD $'+p.ttd)+'</small></p>' +
       '<div class="pc-actions">' +
@@ -1357,9 +1362,11 @@ function loadProduct(id){
   const p = getProd(id);
   curProd = p; selectedSize = ''; pdQty = 1;
   document.getElementById('pd-bc-name').textContent = p.name;
-  document.getElementById('pd-cat').textContent = p.cat === 'clothing'
-    ? 'Clothing — ' + p.sub.charAt(0).toUpperCase() + p.sub.slice(1).replace('-',' ')
-    : p.cat === 'swimwear' ? 'Swimwear — ' + p.sub.replace('-',' ') : 'Thrift';
+  document.getElementById('pd-cat').textContent = p.is_thrift
+    ? 'Thrift — ' + (p.sub==='all'?'Pre-Loved':p.sub.split('-').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1);}).join(' '))
+    : p.cat === 'clothing'
+      ? 'Clothing — ' + p.sub.charAt(0).toUpperCase() + p.sub.slice(1).replace('-',' ')
+      : 'Swimwear — ' + p.sub.replace('-',' ');
   document.getElementById('pd-name').textContent = p.name;
   document.getElementById('pd-tag').textContent = p.tag;
   document.getElementById('pd-price').innerHTML = fmtPrice(p);
@@ -1443,8 +1450,30 @@ function addToCartFromPDP(){
 
 // ── SHOP FILTERS ──
 let shopCat = 'all', shopSub = 'all';
-const SUBS = {clothing:['all','dresses','jumpsuits'], swimwear:['all','bikini-sets','cover-ups'], thrift:[]};
+const SUBS = {clothing:['all','dresses','jumpsuits'], swimwear:['all','bikini-sets','cover-ups']};
 const SUBLABELS = {all:'All', dresses:'Dresses', jumpsuits:'Jumpsuits', 'bikini-sets':'Bikini Sets', 'cover-ups':'Cover-ups'};
+function thriftSubs(){
+  var seen={}, out=[];
+  PRODS.forEach(function(p){
+    if(p.is_thrift && p.sub && p.sub!=='all' && !seen[p.sub]){seen[p.sub]=1;out.push(p.sub);}
+  });
+  return out;
+}
+function buildThriftNav(){
+  var panel = document.getElementById('thrift-nav-panel');
+  if(!panel) return;
+  panel.innerHTML = '';
+  var all = document.createElement('a');
+  all.textContent = 'All Thrift';
+  all.onclick = function(){ quickShop(null,'thrift','all'); };
+  panel.appendChild(all);
+  thriftSubs().forEach(function(s){
+    var a = document.createElement('a');
+    a.textContent = 'Thrifted ' + (SUBLABELS[s] || s);
+    a.onclick = function(){ quickShop(null,'thrift',s); };
+    panel.appendChild(a);
+  });
+}
 
 function initShop(params){
   params = params || {};
@@ -1470,14 +1499,23 @@ function filterShop(btn, cat, sub){
 function renderShopFilters(){
   const subDiv = document.getElementById('sub-tabs');
   const sep = document.getElementById('sub-sep');
-  const subs = SUBS[shopCat] || [];
-  if (shopCat === 'all' || subs.length === 0){ subDiv.innerHTML = ''; sep.style.display = 'none'; return; }
+  var subs;
+  if(shopCat === 'thrift'){
+    var ts = thriftSubs();
+    subs = ts.length ? ['all'].concat(ts) : [];
+  } else {
+    subs = SUBS[shopCat] || [];
+  }
+  if(shopCat === 'all' || subs.length === 0){ subDiv.innerHTML = ''; sep.style.display = 'none'; return; }
   sep.style.display = 'block';
   subDiv.innerHTML = '';
   subs.forEach(function(s){
     const btn = document.createElement('button');
     btn.className = 'ftab sm' + (shopSub === s ? ' on' : '');
-    btn.textContent = SUBLABELS[s] || s;
+    var label = (shopCat === 'thrift' && s !== 'all')
+      ? 'Thrifted ' + (SUBLABELS[s] || s)
+      : (SUBLABELS[s] || s);
+    btn.textContent = label;
     btn.onclick = function(){ setSubFilter(btn, s); };
     subDiv.appendChild(btn);
   });
@@ -1494,11 +1532,20 @@ function filterShopGrid(){
   const cards = document.querySelectorAll('#shop-grid .pcard');
   let count = 0;
   cards.forEach(function(card){
-    const catOk = shopCat === 'all' || card.dataset.cat === shopCat;
-    const subOk = shopSub === 'all' || card.dataset.sub === shopSub;
-    const show = catOk && subOk;
+    var isThrift = card.dataset.thrift === 'true';
+    var show;
+    if(shopCat === 'thrift'){
+      var subOk = shopSub === 'all' || card.dataset.sub === shopSub;
+      show = isThrift && subOk;
+    } else if(shopCat === 'all'){
+      show = true;
+    } else {
+      var catOk = card.dataset.cat === shopCat;
+      var subOk = shopSub === 'all' || card.dataset.sub === shopSub;
+      show = !isThrift && catOk && subOk;
+    }
     card.style.display = show ? '' : 'none';
-    if (show) count++;
+    if(show) count++;
   });
   const fcnt = document.getElementById('fcnt');
   if (fcnt) fcnt.textContent = count + ' ' + (count === 1 ? 'piece' : 'pieces');
@@ -1771,6 +1818,7 @@ document.addEventListener('DOMContentLoaded', function(){
   sizeHeader();
   renderHomeGrid();
   renderShopGrid();
+  buildThriftNav();
   updateCartBadge();
   loadFromSupabase();
   revealInit();
