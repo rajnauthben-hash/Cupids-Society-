@@ -55,8 +55,8 @@ button{font-family:'Jost',sans-serif}
 .ann-dot{color:var(--accent)}
 @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
-/* FIXED HEADER */
-#site-header{position:fixed;top:0;left:0;right:0;z-index:1000;width:100%}
+/* STICKY HEADER */
+#site-header{position:sticky;top:0;z-index:1000;width:100%}
 
 /* LOGO BAR */
 .logo-bar{background:var(--accent);border-bottom:1px solid var(--border)}
@@ -1256,9 +1256,7 @@ function fmtPrice(prod){
 function sizeHeader(){
   const header = document.getElementById('site-header');
   if (!header) return;
-  const h = header.offsetHeight;
-  document.body.style.paddingTop = h + 'px';
-  document.documentElement.style.setProperty('--header-h', h + 'px');
+  document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
 }
 window.addEventListener('resize', sizeHeader);
 window.addEventListener('orientationchange', sizeHeader);
