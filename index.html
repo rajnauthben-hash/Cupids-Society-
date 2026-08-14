@@ -110,7 +110,7 @@ button{font-family:'Jost',sans-serif}
 
 /* CATEGORY NAV */
 .cat-nav{background:var(--bg);border-bottom:1px solid var(--border)}
-.cat-inner{display:flex;justify-content:center;overflow-x:auto;scrollbar-width:none;max-width:var(--cw);margin:0 auto;width:100%}
+.cat-inner{display:flex;justify-content:center;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;scrollbar-width:none;max-width:var(--cw);margin:0 auto;width:100%}
 .cat-inner::-webkit-scrollbar{display:none}
 .cat-inner button{padding:12px 20px;font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;color:var(--dim);border:none;background:none;border-bottom:1.5px solid transparent;flex-shrink:0;transition:all .2s;cursor:pointer;font-family:'Jost',sans-serif}
 .cat-inner button:hover,.cat-inner button.on{color:var(--fg);border-color:var(--accent)}
