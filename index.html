@@ -648,7 +648,7 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
       </div>
     </div>
     <div class="cat-drop">
-      <button onclick="quickShop(this,'thrift','all')">Thrift</button>
+      <button onclick="navPlain('thrift')">Thrift</button>
       <div class="cat-drop-panel" id="thrift-nav-panel"></div>
     </div>
     <button onclick="navPlain('lookbook')">Lookbook</button>
@@ -831,6 +831,35 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 
   <div class="pgrid" id="shop-grid" style="padding:0;min-height:400px"></div>
   <div class="va-wrap" id="no-products" style="display:none"><p class="no-products">No pieces in this category yet. Check back soon.</p></div>
+</div>
+
+<!-- THRIFT -->
+<div id="page-thrift" class="page">
+  <div class="ph ph-sm">
+    <img src="assets/shop-hero.jpg" alt="Thrift — Cupid&#8217;s Society" loading="lazy" style="object-position:center center">
+    <div class="ph-ov" style="background:rgba(255,240,248,.18)"></div>
+    <div class="ph-cnt">
+      <h1 class="ph-h1" style="color:#180C14">Shop</h1>
+      <span class="ph-sc" style="color:rgba(24,12,20,.6)">With love</span>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <div class="filter-inner">
+      <button class="ftab on" data-tcat="all" onclick="filterThrift(this,'all','all')">All</button>
+      <button class="ftab" data-tcat="clothing" onclick="filterThrift(this,'clothing','all')">Clothing</button>
+      <button class="ftab" data-tcat="swimwear" onclick="filterThrift(this,'swimwear','all')">Swimwear</button>
+      <div class="fsep" id="tsub-sep" style="display:none"></div>
+      <span id="tsub-tabs"></span>
+      <select class="fsort" onchange="sortThrift(this.value)">
+        <option value="">Sort: Newest</option>
+        <option value="price-asc">Price: Low to High</option>
+        <option value="price-desc">Price: High to Low</option>
+      </select>
+      <span class="fcnt" id="tfcnt">0 pieces</span>
+    </div>
+  </div>
+  <div class="pgrid" id="thrift-grid" style="padding:0;min-height:400px"></div>
+  <div class="va-wrap" id="tno-products" style="display:none"><p class="no-products">No thrifted pieces in this category yet. Check back soon.</p></div>
 </div>
 
 <!-- PRODUCT DETAIL -->
@@ -1225,7 +1254,7 @@ async function loadFromSupabase(){
         desc:p.description||'',details:p.details||'',care:p.care||'',
         _imgUrl:pimgs.length?pimgs[0].url:null,_stocks:stocks});
     });
-    renderHomeGrid();renderShopGrid();buildThriftNav();
+    renderHomeGrid();renderShopGrid();renderThriftGrid();buildThriftNav();
   }catch(e){console.warn('Supabase unavailable, using local data:',e);}
 }
 async function createSBOrder(items,total){
@@ -1338,6 +1367,7 @@ function nav(page, params){
 
   if (page === 'product') loadProduct(params.id);
   if (page === 'shop') initShop(params);
+  if (page === 'thrift') initThrift(params);
   if (page === 'cart') renderCart();
 
   imgs();
@@ -1463,14 +1493,15 @@ function buildThriftNav(){
   var panel = document.getElementById('thrift-nav-panel');
   if(!panel) return;
   panel.innerHTML = '';
-  var all = document.createElement('a');
-  all.textContent = 'All Thrift';
-  all.onclick = function(){ quickShop(null,'thrift','all'); };
-  panel.appendChild(all);
-  thriftSubs().forEach(function(s){
+  var entries = [
+    {label:'All Thrift', cat:'all', sub:'all'},
+    {label:'Clothing', cat:'clothing', sub:'all'},
+    {label:'Swimwear', cat:'swimwear', sub:'all'}
+  ];
+  entries.forEach(function(e){
     var a = document.createElement('a');
-    a.textContent = 'Thrifted ' + (SUBLABELS[s] || s);
-    a.onclick = function(){ quickShop(null,'thrift',s); };
+    a.textContent = e.label;
+    a.onclick = function(){ nav('thrift',{cat:e.cat,sub:e.sub}); };
     panel.appendChild(a);
   });
 }
@@ -1561,6 +1592,89 @@ function sortShop(val){
     const pb = parseInt(b.dataset.ttd || '0', 10);
     if (val === 'price-asc') return pa - pb;
     if (val === 'price-desc') return pb - pa;
+    return 0;
+  });
+  cards.forEach(function(c){ grid.appendChild(c); });
+}
+
+// ── THRIFT PAGE ──
+var thriftCat = 'all', thriftSub = 'all';
+var THRIFT_SUBS = {clothing:['all','dresses','jumpsuits'], swimwear:['all','bikini-sets','cover-ups']};
+
+function renderThriftGrid(){
+  var grid = document.getElementById('thrift-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  PRODS.forEach(function(p){ if(p.is_thrift) grid.appendChild(buildCard(p)); });
+}
+
+function initThrift(params){
+  params = params || {};
+  thriftCat = params.cat || 'all';
+  thriftSub = params.sub || 'all';
+  renderThriftGrid();
+  document.querySelectorAll('#page-thrift .filter-inner > .ftab').forEach(function(b){
+    b.classList.toggle('on', b.dataset.tcat === thriftCat);
+  });
+  renderThriftFilters();
+  filterThriftGrid();
+}
+
+function filterThrift(btn, cat, sub){
+  document.querySelectorAll('#page-thrift .filter-inner > .ftab').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  thriftCat = cat; thriftSub = sub;
+  renderThriftFilters();
+  filterThriftGrid();
+}
+
+function renderThriftFilters(){
+  var subDiv = document.getElementById('tsub-tabs');
+  var sep = document.getElementById('tsub-sep');
+  var subs = THRIFT_SUBS[thriftCat] || [];
+  if(thriftCat === 'all' || subs.length === 0){ subDiv.innerHTML = ''; sep.style.display = 'none'; return; }
+  sep.style.display = 'block';
+  subDiv.innerHTML = '';
+  subs.forEach(function(s){
+    var btn = document.createElement('button');
+    btn.className = 'ftab sm' + (thriftSub === s ? ' on' : '');
+    btn.textContent = SUBLABELS[s] || s;
+    btn.onclick = function(){ setThriftSub(btn, s); };
+    subDiv.appendChild(btn);
+  });
+}
+
+function setThriftSub(btn, sub){
+  document.querySelectorAll('#tsub-tabs .ftab').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  thriftSub = sub;
+  filterThriftGrid();
+}
+
+function filterThriftGrid(){
+  var cards = document.querySelectorAll('#thrift-grid .pcard');
+  var count = 0;
+  cards.forEach(function(card){
+    var catOk = thriftCat === 'all' || card.dataset.cat === thriftCat;
+    var subOk = thriftSub === 'all' || card.dataset.sub === thriftSub;
+    var show = catOk && subOk;
+    card.style.display = show ? '' : 'none';
+    if(show) count++;
+  });
+  var tfcnt = document.getElementById('tfcnt');
+  if(tfcnt) tfcnt.textContent = count + ' ' + (count === 1 ? 'piece' : 'pieces');
+  document.getElementById('tno-products').style.display = count === 0 ? 'block' : 'none';
+  document.getElementById('thrift-grid').style.display = count === 0 ? 'none' : '';
+}
+
+function sortThrift(val){
+  var grid = document.getElementById('thrift-grid');
+  var cards = Array.from(grid.children);
+  cards.sort(function(a, b){
+    var pa = parseInt(a.dataset.ttd || '0', 10);
+    var pb = parseInt(b.dataset.ttd || '0', 10);
+    if(val === 'price-asc') return pa - pb;
+    if(val === 'price-desc') return pb - pa;
     return 0;
   });
   cards.forEach(function(c){ grid.appendChild(c); });
@@ -1818,6 +1932,7 @@ document.addEventListener('DOMContentLoaded', function(){
   sizeHeader();
   renderHomeGrid();
   renderShopGrid();
+  renderThriftGrid();
   buildThriftNav();
   updateCartBadge();
   loadFromSupabase();
