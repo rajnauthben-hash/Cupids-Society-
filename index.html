@@ -78,7 +78,7 @@ button{font-family:var(--font-display)}
 
 /* MOBILE MENU */
 .no-scroll{overflow:hidden !important;touch-action:none}
-.mob-menu{position:fixed;inset:0;z-index:1100;display:none;background:var(--fg)}
+.mob-menu{position:fixed;inset:0;z-index:1100;display:none;background:var(--accent)}
 .mob-menu.open{display:flex;align-items:center;justify-content:center}
 
 /* hide all old decorative elements */
@@ -86,29 +86,29 @@ button{font-family:var(--font-display)}
 
 .mob-menu-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:5rem 2rem;position:relative}
 
-.mob-close{position:absolute;top:2rem;right:2rem;width:44px;height:44px;border:1px solid rgba(255,255,255,.15);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.mob-close::before,.mob-close::after{content:'';position:absolute;width:20px;height:1px;background:rgba(255,255,255,.65)}
+.mob-close{position:absolute;top:2rem;right:2rem;width:44px;height:44px;border:1px solid rgba(24,12,20,.2);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mob-close::before,.mob-close::after{content:'';position:absolute;width:20px;height:1px;background:rgba(24,12,20,.7)}
 .mob-close::before{transform:rotate(45deg)}
 .mob-close::after{transform:rotate(-45deg)}
 
 .mob-nav-list{display:flex;flex-direction:column;align-items:center;width:min(28rem,88vw)}
-.mob-item{width:100%;text-align:center;border-bottom:1px solid rgba(255,255,255,.07)}
-.mob-item:first-child{border-top:1px solid rgba(255,255,255,.07)}
+.mob-item{width:100%;text-align:center;border-bottom:1px solid rgba(24,12,20,.14)}
+.mob-item:first-child{border-top:1px solid rgba(24,12,20,.14)}
 
 .mob-menu a{
   display:block;
   font-family:var(--font-display);
   font-size:clamp(2.2rem,7.5vw,4rem);
   font-weight:400;
-  color:rgba(255,255,255,.8);
+  color:rgba(24,12,20,.72);
   line-height:1;
   padding:.85rem 0;
   transition:color .2s,letter-spacing .2s;
   letter-spacing:.02em;
 }
-.mob-menu a:hover{color:var(--gold)}
+.mob-menu a:hover{color:var(--fg)}
 
-.mob-footer-note{margin-top:2.5rem;font-family:var(--font-display);font-size:9px;font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.2)}
+.mob-footer-note{margin-top:2.5rem;font-family:var(--font-display);font-size:9px;font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:rgba(24,12,20,.4)}
 
 /* CATEGORY NAV */
 .cat-nav{background:var(--bg);border-bottom:1px solid var(--border)}
