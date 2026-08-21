@@ -643,9 +643,9 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 <!-- CATEGORY NAV -->
 <nav class="cat-nav">
   <div class="cat-inner">
-    <button onclick="nav('home')">Home</button>
+    <button data-nav="home" onclick="nav('home')">Home</button>
     <div class="cat-drop">
-      <button onclick="quickShop(this,'clothing','all')">Clothing</button>
+      <button data-nav="shop" onclick="quickShop(this,'clothing','all')">Clothing</button>
       <div class="cat-drop-panel">
         <a onclick="quickShop(null,'swimwear','all')">Swimwear</a>
         <a onclick="quickShop(null,'clothing','dresses')">Dresses</a>
@@ -653,12 +653,12 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
       </div>
     </div>
     <div class="cat-drop">
-      <button onclick="navPlain('thrift')">Thrift</button>
+      <button data-nav="thrift" onclick="navPlain('thrift')">Thrift</button>
       <div class="cat-drop-panel" id="thrift-nav-panel"></div>
     </div>
-    <button onclick="navPlain('lookbook')">Lookbook</button>
-    <button onclick="navPlain('society')">The Society</button>
-    <button onclick="navPlain('contact')">Contact</button>
+    <button data-nav="lookbook" onclick="navPlain('lookbook')">Lookbook</button>
+    <button data-nav="society" onclick="navPlain('society')">The Society</button>
+    <button data-nav="contact" onclick="navPlain('contact')">Contact</button>
   </div>
 </nav>
 </header>
@@ -1375,6 +1375,7 @@ function nav(page, params){
   if (page === 'thrift') initThrift(params);
   if (page === 'cart') renderCart();
 
+  syncNav();
   imgs();
   window.scrollTo(0, 0);
   setTimeout(revealInit, 30);
@@ -1385,9 +1386,18 @@ function nav(page, params){
 // every category button (in the top cat-nav, footer, and category tiles)
 // calls this with the target cat/sub, and Shop always re-renders fresh.
 function quickShop(btn, cat, sub){
-  document.querySelectorAll('.cat-inner button').forEach(function(b){ b.classList.remove('on'); });
-  if (btn) btn.classList.add('on');
   nav('shop', {cat: cat, sub: sub});
+}
+
+// The underline in the top nav reflects the page you are ON, not the button
+// you last clicked. nav() calls this on every navigation, so the logo, footer
+// links, breadcrumbs and dropdown items all keep it correct too.
+// Pages with no nav button of their own (product, cart, size guide, faq...)
+// intentionally light nothing.
+function syncNav(){
+  document.querySelectorAll('.cat-inner button').forEach(function(b){
+    b.classList.toggle('on', b.dataset.nav === curPage);
+  });
 }
 
 // ── PRODUCT DETAIL ──
@@ -1935,6 +1945,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.body.classList.add('ready');
   imgs();
   sizeHeader();
+  syncNav();
   renderHomeGrid();
   renderShopGrid();
   renderThriftGrid();
