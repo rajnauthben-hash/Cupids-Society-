@@ -354,6 +354,13 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 .ph-over{font-family:var(--font-display);font-size:9px;font-weight:400;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:.85rem}
 .ph-h1{font-family:var(--font-display);font-size:clamp(2.5rem,6vw,4.5rem);font-weight:400;color:#fff;letter-spacing:.02em;margin-bottom:.4rem}
 .ph-sc{font-family:var(--font-display);font-size:clamp(1.2rem,2.5vw,1.8rem);font-weight:400;color:rgba(255,255,255,.65);display:block}
+/* Heroes whose artwork carries its own lettering: show the frame whole.
+   Cropping to a fixed height would cut the neon script off at the sides. */
+.ph-full{height:auto;min-height:0}
+.ph-full img{position:relative;inset:auto;width:100%;height:auto;object-fit:contain;display:block}
+/* No dimming scrim on these, so the caption gets a soft halo to stay
+   legible where it crosses the busier parts of the artwork. */
+.ph-full .ph-sc{text-shadow:0 1px 14px rgba(255,255,255,.7),0 0 4px rgba(255,255,255,.5)}
 
 /* SPLIT SECTION */
 .split{display:grid;grid-template-columns:55fr 45fr}
@@ -808,11 +815,9 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 
 <!-- SHOP -->
 <div id="page-shop" class="page">
-  <div class="ph ph-sm">
-    <img src="assets/shop-hero.jpg" alt="Shop Cupid&#8217;s Society" loading="lazy" style="object-position:center center">
-    <div class="ph-ov" style="background:rgba(255,240,248,.18)"></div>
+  <div class="ph ph-full">
+    <img src="assets/hero-new.jpg" alt="New in at Cupid&#8217;s Society" loading="lazy">
     <div class="ph-cnt">
-      <h1 class="ph-h1" style="color:#180C14">Shop</h1>
       <span class="ph-sc" style="color:rgba(24,12,20,.6)">With love</span>
     </div>
   </div>
@@ -840,12 +845,10 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 
 <!-- THRIFT -->
 <div id="page-thrift" class="page">
-  <div class="ph ph-sm">
-    <img src="assets/shop-hero.jpg" alt="Thrift — Cupid&#8217;s Society" loading="lazy" style="object-position:center center">
-    <div class="ph-ov" style="background:rgba(255,240,248,.18)"></div>
+  <div class="ph ph-full">
+    <img src="assets/hero-thrift.jpg" alt="Thrift — Cupid&#8217;s Society" loading="lazy">
     <div class="ph-cnt">
-      <h1 class="ph-h1" style="color:#180C14">Shop</h1>
-      <span class="ph-sc" style="color:rgba(24,12,20,.6)">With love</span>
+      <span class="ph-sc" style="color:rgba(24,12,20,.6)">One of one.</span>
     </div>
   </div>
   <div class="filter-bar">
@@ -931,11 +934,9 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 
 <!-- LOOKBOOK -->
 <div id="page-lookbook" class="page">
-  <div class="ph ph-md">
-    <img src="assets/lookbook-hero.jpg" alt="Lookbook" loading="lazy" style="object-position:center center">
-    <div class="ph-ov" style="background:rgba(255,240,248,.22)"></div>
+  <div class="ph ph-full">
+    <img src="assets/hero-lookbook.jpg" alt="Lookbook" loading="lazy">
     <div class="ph-cnt">
-      <h1 class="ph-h1" style="color:#180C14">The Lookbook</h1>
       <span class="ph-sc" style="color:rgba(24,12,20,.6)">Dress with Intention.</span>
     </div>
   </div>
@@ -953,11 +954,9 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 
 <!-- SOCIETY -->
 <div id="page-society" class="page">
-  <div style="position:relative;line-height:0">
-    <img src="assets/society-hero.jpg" alt="The Society" loading="lazy" style="width:100%;height:auto;display:block">
-    <div style="position:absolute;inset:0;background:rgba(255,240,248,.1)"></div>
-    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:clamp(2rem,5vw,4rem) clamp(2rem,6vw,7rem);line-height:normal">
-      <h1 class="ph-h1" style="color:#180C14">Our Community</h1>
+  <div class="ph ph-full">
+    <img src="assets/hero-society.jpg" alt="The Society" loading="lazy">
+    <div class="ph-cnt">
       <span class="ph-sc" style="color:rgba(24,12,20,.6)">Love is a Lifestyle. You belong here!</span>
     </div>
   </div>
@@ -1024,10 +1023,9 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 
 <!-- CONTACT -->
 <div id="page-contact" class="page">
-  <div class="ph ph-md" style="background:#f8f4f6">
-    <img src="assets/contact-hero.jpg" alt="Contact Cupid&#8217;s Society" loading="lazy" style="object-position:center bottom">
-    <div class="ph-ov" style="background:rgba(255,240,248,.15)"></div>
-    <div class="ph-cnt"><h1 class="ph-h1" style="color:#180C14">Let&#8217;s Talk.</h1><span class="ph-sc" style="color:rgba(24,12,20,.6)">Get in touch</span></div>
+  <div class="ph ph-full" style="background:#f8f4f6">
+    <img src="assets/hero-contact.jpg" alt="Contact Cupid&#8217;s Society" loading="lazy">
+    <div class="ph-cnt"><span class="ph-sc" style="color:rgba(24,12,20,.6)">Get in touch</span></div>
   </div>
   <div class="cf-wrap">
     <div class="cf">
