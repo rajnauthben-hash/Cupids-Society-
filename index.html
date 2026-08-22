@@ -358,9 +358,6 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
    Cropping to a fixed height would cut the neon script off at the sides. */
 .ph-full{height:auto;min-height:0}
 .ph-full img{position:relative;inset:auto;width:100%;height:auto;object-fit:contain;display:block}
-/* No dimming scrim on these, so the caption gets a soft halo to stay
-   legible where it crosses the busier parts of the artwork. */
-.ph-full .ph-sc{text-shadow:0 1px 14px rgba(255,255,255,.7),0 0 4px rgba(255,255,255,.5)}
 
 /* SPLIT SECTION */
 .split{display:grid;grid-template-columns:55fr 45fr}
@@ -817,9 +814,6 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 <div id="page-shop" class="page">
   <div class="ph ph-full">
     <img src="assets/hero-new.jpg" alt="New in at Cupid&#8217;s Society" loading="lazy">
-    <div class="ph-cnt">
-      <span class="ph-sc" style="color:rgba(24,12,20,.6)">With love</span>
-    </div>
   </div>
 
   <div class="filter-bar">
@@ -847,9 +841,6 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 <div id="page-thrift" class="page">
   <div class="ph ph-full">
     <img src="assets/hero-thrift.jpg" alt="Thrift — Cupid&#8217;s Society" loading="lazy">
-    <div class="ph-cnt">
-      <span class="ph-sc" style="color:rgba(24,12,20,.6)">One of one.</span>
-    </div>
   </div>
   <div class="filter-bar">
     <div class="filter-inner">
@@ -936,12 +927,9 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 <div id="page-lookbook" class="page">
   <div class="ph ph-full">
     <img src="assets/hero-lookbook.jpg" alt="Lookbook" loading="lazy">
-    <div class="ph-cnt">
-      <span class="ph-sc" style="color:rgba(24,12,20,.6)">Dress with Intention.</span>
-    </div>
   </div>
   <div class="sh rv"><span class="sh-over">2026 Collection</span><h2 class="sh-title">Editorial</h2></div>
-  <div class="lb-grid" style="max-width:var(--cw);margin:0 auto;padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,4rem)">
+  <div class="lb-grid" id="lb-grid" style="max-width:var(--cw);margin:0 auto;padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,4rem)">
     <button class="lb-cell lb-tall" onclick="openLB(0)"><img data-img="JUMP" alt="Black Cat Unitard" loading="lazy"></button>
     <button class="lb-cell" onclick="openLB(1)"><img data-img="DUSK" alt="Pink Horizon Bikini" loading="lazy"></button>
     <button class="lb-cell" onclick="openLB(2)"><img data-img="RHINE" alt="Crystal Night Mini" loading="lazy"></button>
@@ -956,9 +944,6 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 <div id="page-society" class="page">
   <div class="ph ph-full">
     <img src="assets/hero-society.jpg" alt="The Society" loading="lazy">
-    <div class="ph-cnt">
-      <span class="ph-sc" style="color:rgba(24,12,20,.6)">Love is a Lifestyle. You belong here!</span>
-    </div>
   </div>
   <section class="manifesto">
     <span class="sh-over rv">Our Community</span>
@@ -1025,7 +1010,6 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 <div id="page-contact" class="page">
   <div class="ph ph-full" style="background:#f8f4f6">
     <img src="assets/hero-contact.jpg" alt="Contact Cupid&#8217;s Society" loading="lazy">
-    <div class="ph-cnt"><span class="ph-sc" style="color:rgba(24,12,20,.6)">Get in touch</span></div>
   </div>
   <div class="cf-wrap">
     <div class="cf">
@@ -1869,14 +1853,43 @@ function toggleAcc(btn){
 
 // ── LIGHTBOX ──
 const LB_IMGS = ['JUMP','DUSK','RHINE','BANDAGE','WHITE','STRIPE'];
+// Resolved sources for the lightbox. Null means "use the built-in set";
+// loadLookbook() replaces it with the admin-managed photos.
+let LB_SRC = null;
 let lbIdx = 0;
+function lbSources(){
+  return LB_SRC || LB_IMGS.map(function(k){ return 'data:image/jpeg;base64,' + IMG[k]; });
+}
 function openLB(i){
+  const src = lbSources();
+  if (!src.length) return;
   lbIdx = i;
-  document.getElementById('lb-img').src = 'data:image/jpeg;base64,' + IMG[LB_IMGS[i]];
+  document.getElementById('lb-img').src = src[i];
   document.getElementById('lb').classList.add('open');
 }
 function closeLB(){ document.getElementById('lb').classList.remove('open'); }
-function lbNav(d){ lbIdx = (lbIdx + d + LB_IMGS.length) % LB_IMGS.length; openLB(lbIdx); }
+function lbNav(d){ const n = lbSources().length; if(!n) return; lbIdx = (lbIdx + d + n) % n; openLB(lbIdx); }
+
+// Lookbook photos come from the admin panel. If the table is empty or the
+// request fails, the built-in grid in the markup is left exactly as it is.
+function lbEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+async function loadLookbook(){
+  try{
+    const rows = await sbGet('lookbook_images?select=image_url,caption,display_order'
+      + '&is_active=eq.true&order=display_order.asc');
+    if (!Array.isArray(rows) || !rows.length) return;
+    const grid = document.getElementById('lb-grid');
+    if (!grid) return;
+    LB_SRC = rows.map(function(r){ return r.image_url; });
+    grid.innerHTML = rows.map(function(r, i){
+      return '<button class="lb-cell' + (i === 0 ? ' lb-tall' : '') + '" onclick="openLB(' + i + ')">'
+           + '<img src="' + lbEsc(r.image_url) + '" alt="' + lbEsc(r.caption || 'Lookbook')
+           + '" loading="lazy"></button>';
+    }).join('');
+  }catch(e){ console.warn('Lookbook unavailable, using built-in grid:', e); }
+}
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape') closeLB();
   if (e.key === 'ArrowLeft') lbNav(-1);
@@ -1950,6 +1963,7 @@ document.addEventListener('DOMContentLoaded', function(){
   buildThriftNav();
   updateCartBadge();
   loadFromSupabase();
+  loadLookbook();
   revealInit();
   // restore wishlist heart states on any cards already in DOM
   document.querySelectorAll('.pheart[data-pid]').forEach(function(btn){

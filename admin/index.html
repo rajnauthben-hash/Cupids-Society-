@@ -155,6 +155,19 @@ textarea{min-height:80px;resize:vertical;line-height:1.5}
   border:0;font-size:8px;font-weight:500;padding:4px 6px;cursor:pointer;
   letter-spacing:.1em;text-transform:uppercase}
 .imgs .thumb.primary{outline:2px solid var(--fg);outline-offset:-2px}
+/* ---------- lookbook ---------- */
+.lb-row{display:flex;gap:12px;align-items:flex-start;background:var(--bg);
+  border:1px solid var(--line);padding:12px;margin-bottom:10px}
+.lb-row.off{background:var(--paper)}
+.lb-row.off .lb-shot{opacity:.35}
+.lb-shot{width:62px;aspect-ratio:3/4;object-fit:cover;display:block;flex-shrink:0;
+  border:1px solid var(--line);background:var(--pink-wash)}
+.lb-meta{flex:1;min-width:0}
+.lb-meta input[type=text]{margin-bottom:8px}
+.lb-ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lb-ctl .ord{width:56px;text-align:center;font-variant-numeric:tabular-nums;padding:9px 4px}
+.lb-ctl .btn.sm{flex-shrink:0}
+
 .imgs .add{aspect-ratio:3/4;border:1px dashed var(--line);background:none;cursor:pointer;
   color:var(--dim);font-size:11px;display:grid;place-items:center;text-align:center;padding:8px;
   letter-spacing:.06em}
@@ -252,6 +265,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.5}
     <section class="view" id="v-today"></section>
     <section class="view hide" id="v-stock"></section>
     <section class="view hide" id="v-orders"></section>
+    <section class="view hide" id="v-lookbook"></section>
   </main>
 
   <nav class="tabs">
@@ -259,6 +273,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.5}
     <button data-tab="stock"  aria-selected="false">Pieces</button>
     <button data-tab="orders" aria-selected="false">Orders
       <span class="badge hide" id="pendBadge">0</span></button>
+    <button data-tab="lookbook" aria-selected="false">Lookbook</button>
   </nav>
 </div>
 
@@ -294,7 +309,7 @@ const money = (n, cur='TTD') =>
 const slugify = s => s.toLowerCase().trim()
   .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
 
-let DB = { products:[], orders:[] };
+let DB = { products:[], orders:[], lookbook:[] };
 let TAB = 'today';
 
 function toast(msg){
@@ -328,15 +343,20 @@ async function boot(){
 }
 
 async function load(){
-  const [p, o] = await Promise.all([
+  const [p, o, lb] = await Promise.all([
     sb.from('products').select('*, variants(*), product_images(*)')
       .neq('status','archived').order('sort_order'),
     sb.from('orders').select('*, order_items(*)')
-      .order('created_at',{ascending:false}).limit(300)
+      .order('created_at',{ascending:false}).limit(300),
+    sb.from('lookbook_images').select('*').order('display_order')
   ]);
   if (p.error || o.error) toast('Couldn\u2019t reach the database. Check your connection.');
+  // The lookbook table may not exist yet on an un-migrated project; that is not
+  // a connection problem, so it gets its own quiet fallback.
+  if (lb.error) console.warn('lookbook_images unavailable:', lb.error.message);
   DB.products = p.data || [];
   DB.orders   = o.data || [];
+  DB.lookbook = lb.data || [];
   const n = DB.orders.filter(x=>x.status==='pending').length;
   const b = $('#pendBadge'); b.textContent = n; b.classList.toggle('hide', n===0);
 }
@@ -345,14 +365,17 @@ document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => {
   TAB = b.dataset.tab;
   document.querySelectorAll('nav.tabs button')
     .forEach(x => x.setAttribute('aria-selected', String(x.dataset.tab===TAB)));
-  $('#viewTitle').textContent = {today:'Today',stock:'Pieces',orders:'Orders'}[TAB];
-  ['today','stock','orders'].forEach(t => $('#v-'+t).classList.toggle('hide', t!==TAB));
+  $('#viewTitle').textContent =
+    {today:'Today',stock:'Pieces',orders:'Orders',lookbook:'Lookbook'}[TAB];
+  ['today','stock','orders','lookbook']
+    .forEach(t => $('#v-'+t).classList.toggle('hide', t!==TAB));
   render(); window.scrollTo(0,0);
 });
 function render(){
-  if (TAB==='today')  renderToday();
-  if (TAB==='stock')  renderStock();
-  if (TAB==='orders') renderOrders();
+  if (TAB==='today')    renderToday();
+  if (TAB==='stock')    renderStock();
+  if (TAB==='orders')   renderOrders();
+  if (TAB==='lookbook') renderLookbook();
 }
 
 const sortSizes = (a,b) => {
@@ -858,6 +881,152 @@ async function setPrimary(id, quiet){
   draft.product_images.forEach(x => x.is_primary = (x.id===id));
   drawSheet();
   if (!quiet) toast('That photo shows first now');
+}
+
+/* =====================================================================
+   LOOKBOOK
+   Photos on the storefront Lookbook page. Order is a plain 1..n list —
+   the number is the position, and saving one renumbers the rest.
+   ===================================================================== */
+const lbSorted = () => DB.lookbook.slice()
+  .sort((a,b) => a.display_order - b.display_order || a.created_at.localeCompare(b.created_at));
+
+function renderLookbook(){
+  const rows = lbSorted();
+  const live = rows.filter(r => r.is_active).length;
+  const hid  = rows.length - live;
+
+  $('#v-lookbook').innerHTML = `
+    <div class="card">
+      <div class="small dim" style="margin-bottom:12px">${
+        rows.length
+          ? `${live} showing on the site${hid ? ` · ${hid} hidden` : ''}`
+          : 'Photos you add here appear on the Lookbook page.'
+      }</div>
+      <button class="btn pink" id="lbAdd">Add photos</button>
+      <input type="file" id="lbFile" accept="image/*" multiple hidden>
+    </div>
+    ${rows.length ? rows.map((r,i) => lbRow(r,i,rows.length)).join('') : `
+      <div class="empty">
+        <div class="big">Your lookbook is empty</div>
+        <div class="small">Add a photo to get started.</div>
+      </div>`}`;
+
+  $('#lbAdd').onclick   = () => $('#lbFile').click();
+  $('#lbFile').onchange = e => { lbUpload([...e.target.files]); e.target.value = ''; };
+
+  $('#v-lookbook').querySelectorAll('[data-lb]').forEach(el => {
+    const id = el.dataset.lb, act = el.dataset.act;
+    if (act === 'caption') el.onchange = () => lbSave(id, { caption: el.value.trim() || null });
+    if (act === 'toggle')  el.onclick  = () => lbToggle(id);
+    if (act === 'del')     el.onclick  = () => lbDelete(id);
+    if (act === 'pos')     el.onchange = () => lbMove(id, parseInt(el.value,10));
+    if (act === 'up')      el.onclick  = () => lbNudge(id, -1);
+    if (act === 'down')    el.onclick  = () => lbNudge(id,  1);
+  });
+}
+
+function lbRow(r, i, n){
+  return `
+  <div class="lb-row${r.is_active ? '' : ' off'}">
+    <img class="lb-shot" src="${esc(r.image_url)}" alt="${esc(r.caption || 'Lookbook photo')}">
+    <div class="lb-meta">
+      <input type="text" data-lb="${r.id}" data-act="caption"
+             value="${esc(r.caption || '')}" placeholder="Caption (optional)">
+      <div class="lb-ctl">
+        <input class="ord" type="number" min="1" max="${n}" value="${i+1}"
+               data-lb="${r.id}" data-act="pos" aria-label="Position">
+        <button class="btn ghost sm" data-lb="${r.id}" data-act="up"
+                ${i===0 ? 'disabled' : ''} aria-label="Move up">&uarr;</button>
+        <button class="btn ghost sm" data-lb="${r.id}" data-act="down"
+                ${i===n-1 ? 'disabled' : ''} aria-label="Move down">&darr;</button>
+        <button class="btn ${r.is_active ? 'ghost' : 'pink'} sm"
+                data-lb="${r.id}" data-act="toggle">${r.is_active ? 'Hide' : 'Show'}</button>
+        <button class="btn danger sm" data-lb="${r.id}" data-act="del">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function lbUpload(files){
+  if (!files.length) return;
+  let next = DB.lookbook.reduce((m,r) => Math.max(m, r.display_order), -1) + 1;
+
+  for (const file of files){
+    const ext  = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error:upErr } = await sb.storage.from('lookbook-images')
+      .upload(path, file, { cacheControl:'3600', upsert:false });
+    if (upErr){ toast('Photo upload failed: ' + upErr.message); break; }
+
+    const { data:{ publicUrl } } = sb.storage.from('lookbook-images').getPublicUrl(path);
+    const { data, error } = await sb.from('lookbook_images').insert({
+      image_url:publicUrl, storage_path:path, display_order:next++, is_active:true
+    }).select().single();
+    if (error){ toast(error.message); break; }
+    DB.lookbook.push(data);
+  }
+  renderLookbook();
+  toast(files.length === 1 ? 'Photo added' : `${files.length} photos added`);
+}
+
+async function lbSave(id, patch){
+  const row = DB.lookbook.find(r => r.id === id);
+  Object.assign(row, patch);
+  const { error } = await sb.from('lookbook_images').update(patch).eq('id', id);
+  if (error) return toast(error.message);
+  toast('Saved');
+}
+
+async function lbToggle(id){
+  const row = DB.lookbook.find(r => r.id === id);
+  const on  = !row.is_active;
+  row.is_active = on;
+  renderLookbook();
+  const { error } = await sb.from('lookbook_images').update({ is_active:on }).eq('id', id);
+  if (error){ row.is_active = !on; renderLookbook(); return toast(error.message); }
+  toast(on ? 'Showing on the site' : 'Hidden from the site');
+}
+
+async function lbDelete(id){
+  const row = DB.lookbook.find(r => r.id === id);
+  if (!confirm('Delete this photo from the lookbook?')) return;
+  if (row.storage_path) await sb.storage.from('lookbook-images').remove([row.storage_path]);
+  const { error } = await sb.from('lookbook_images').delete().eq('id', id);
+  if (error) return toast(error.message);
+  DB.lookbook = DB.lookbook.filter(r => r.id !== id);
+  await lbRenumber();
+  renderLookbook();
+  toast('Photo deleted');
+}
+
+function lbNudge(id, d){
+  const rows = lbSorted();
+  const i = rows.findIndex(r => r.id === id);
+  lbMove(id, i + 1 + d);
+}
+
+// Position is 1-based. Move the row, then rewrite every display_order so the
+// list stays a clean 0..n-1 with no gaps or ties.
+async function lbMove(id, pos){
+  const rows = lbSorted();
+  const from = rows.findIndex(r => r.id === id);
+  let to = (Number.isFinite(pos) ? pos : from + 1) - 1;
+  to = Math.max(0, Math.min(rows.length - 1, to));
+  if (to === from) return renderLookbook();
+  rows.splice(to, 0, rows.splice(from, 1)[0]);
+  rows.forEach((r,i) => r.display_order = i);
+  renderLookbook();
+  await lbRenumber();
+}
+
+async function lbRenumber(){
+  const rows = lbSorted();
+  rows.forEach((r,i) => r.display_order = i);
+  const res = await Promise.all(rows.map(r =>
+    sb.from('lookbook_images').update({ display_order:r.display_order }).eq('id', r.id)));
+  const bad = res.find(x => x.error);
+  if (bad) toast(bad.error.message);
 }
 
 /* =====================================================================
