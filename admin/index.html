@@ -317,7 +317,7 @@ const money = (n, cur='TTD') =>
 const slugify = s => s.toLowerCase().trim()
   .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
 
-let DB = { products:[], orders:[], lookbook:[], collections:[] };
+let DB = { products:[], orders:[], lookbook:[], collections:[], lookbookReady:true };
 let TAB = 'today';
 
 function toast(msg){
@@ -364,6 +364,7 @@ async function load(){
   // a connection problem, so it gets its own quiet fallback.
   if (lb.error) console.warn('lookbook_images unavailable:', lb.error.message);
   if (lc.error) console.warn('lookbook_collections unavailable:', lc.error.message);
+  DB.lookbookReady = !lc.error;
   DB.products = p.data || [];
   DB.orders   = o.data || [];
   DB.lookbook = lb.data || [];
@@ -936,12 +937,30 @@ function renderCollectionList(){
   const rows = collSorted();
   const live = rows.filter(c => c.is_active).length;
 
+  // Without the table there is nothing to add to — say so rather than
+  // showing an empty panel that looks broken.
+  if (!DB.lookbookReady){
+    $('#v-lookbook').innerHTML = `
+      <div class="card">
+        <h3 style="margin-bottom:8px">One setup step left</h3>
+        <p class="small dim" style="line-height:1.6">
+          The lookbook tables haven’t been created in Supabase yet, so collections
+          can’t be saved. Run <strong>thrift-and-collections-migration.sql</strong>
+          in the Supabase SQL Editor, then reload this page.</p>
+      </div>`;
+    return;
+  }
+
   $('#v-lookbook').innerHTML = `
     <div class="card">
       <div class="small dim" style="margin-bottom:12px">${
         rows.length
           ? `${rows.length} collection${rows.length===1?'':'s'} · ${live} showing on the site`
           : 'Group your lookbook photos into named collections.'}</div>
+      <label class="field" style="margin-bottom:10px">
+        <span>New collection</span>
+        <input type="text" id="collNew" placeholder="Name it — e.g. Cupid Boutique"
+               autocomplete="off" enterkeyhint="done"></label>
       <button class="btn pink" id="collAdd">Add collection</button>
     </div>
     ${rows.length ? rows.map((c,i) => collRow(c,i,rows.length)).join('') : `
@@ -951,6 +970,7 @@ function renderCollectionList(){
       </div>`}`;
 
   $('#collAdd').onclick = collCreate;
+  $('#collNew').onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); collCreate(); } };
   $('#v-lookbook').querySelectorAll('[data-coll]').forEach(el => {
     const id = el.dataset.coll, act = el.dataset.act;
     if (act === 'open')   el.onclick  = () => { openColl = id; renderLookbook(); window.scrollTo(0,0); };
@@ -1053,12 +1073,16 @@ function lbRow(r, i, n){
 
 /* ---------------- collection actions ---------------- */
 async function collCreate(){
-  const name = (prompt('Name this collection') || '').trim();
-  if (!name) return;
+  const box  = $('#collNew');
+  const name = (box?.value || '').trim();
+  if (!name){ toast('Give the collection a name first'); box?.focus(); return; }
   const next = DB.collections.reduce((m,c) => Math.max(m, c.display_order), -1) + 1;
   const { data, error } = await sb.from('lookbook_collections')
     .insert({ name, display_order:next, is_active:true }).select().single();
-  if (error) return toast(error.message);
+  // Most likely cause: the collections table has not been created yet.
+  if (error) return toast(/relation|does not exist|schema cache/i.test(error.message)
+    ? 'Collections table not set up yet — run the Supabase migration.'
+    : error.message);
   DB.collections.push(data);
   openColl = data.id;
   renderLookbook();
