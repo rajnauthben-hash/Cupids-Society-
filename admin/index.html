@@ -364,7 +364,13 @@ async function load(){
   // a connection problem, so it gets its own quiet fallback.
   if (lb.error) console.warn('lookbook_images unavailable:', lb.error.message);
   if (lc.error) console.warn('lookbook_collections unavailable:', lc.error.message);
-  DB.lookbookReady = !lc.error;
+  // Only a genuinely missing table counts as "not set up". Postgres 42P01 is
+  // "undefined table"; PGRST205 is the table existing but not yet in
+  // PostgREST's schema cache. Anything else (network, auth) is a real error
+  // and must not be reported as a missing migration.
+  DB.lookbookReady = !lc.error
+    || !['42P01','PGRST205','PGRST106'].includes(lc.error.code || '');
+  DB.lookbookError = lc.error || null;
   DB.products = p.data || [];
   DB.orders   = o.data || [];
   DB.lookbook = lb.data || [];
@@ -940,14 +946,24 @@ function renderCollectionList(){
   // Without the table there is nothing to add to — say so rather than
   // showing an empty panel that looks broken.
   if (!DB.lookbookReady){
+    const e = DB.lookbookError || {};
+    // PGRST205 means the table is there but the API hasn't noticed it yet.
+    const cached = (e.code === 'PGRST205') || /schema cache/i.test(e.message || '');
     $('#v-lookbook').innerHTML = `
       <div class="card">
-        <h3 style="margin-bottom:8px">One setup step left</h3>
-        <p class="small dim" style="line-height:1.6">
-          The lookbook tables haven’t been created in Supabase yet, so collections
-          can’t be saved. Run <strong>thrift-and-collections-migration.sql</strong>
-          in the Supabase SQL Editor, then reload this page.</p>
+        <h3 style="margin-bottom:8px">${cached ? 'Almost there' : 'One setup step left'}</h3>
+        <p class="small dim" style="line-height:1.6">${cached
+          ? `The table exists but the API hasn’t picked it up yet. In the Supabase
+             SQL Editor run <strong>notify pgrst, 'reload schema';</strong> then
+             pull down to reload this page.`
+          : `The lookbook tables haven’t been created in Supabase yet, so collections
+             can’t be saved. Run <strong>thrift-and-collections-migration.sql</strong>
+             in the Supabase SQL Editor, then reload this page.`}</p>
+        <button class="btn ghost sm" id="lbRetry" style="margin-top:12px">Check again</button>
+        <p class="tiny dim" style="margin-top:10px;word-break:break-word">
+          ${esc(e.code ? e.code + ' — ' : '')}${esc(e.message || '')}</p>
       </div>`;
+    $('#lbRetry').onclick = async () => { await load(); render(); };
     return;
   }
 
