@@ -245,10 +245,11 @@ button{font-family:var(--font-display)}
 .pc-addcart{font-family:var(--font-display);font-size:9px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--fg);border:none;padding:7px 13px;cursor:pointer;transition:background .2s}
 .pc-addcart:hover{background:var(--accent)}
 
-.arrivals-sec{background:var(--accent);background-size:640px;background-repeat:repeat;background-position:center}
-#clouds-viewall{background-size:640px;background-repeat:repeat;background-position:center}
-#clouds-header{background-size:640px;background-repeat:repeat;background-position:center}
-#clouds-nl{background-size:640px;background-repeat:repeat;background-position:center}
+/* The cloud art is a single square photo, not a seamless tile — cover it so
+   the wash fills the whole band instead of leaving seams and flat gaps. */
+.arrivals-sec{background:var(--accent);background-size:cover;background-repeat:no-repeat;background-position:center}
+#clouds-header{background-size:cover;background-repeat:no-repeat;background-position:center}
+#clouds-nl{background-size:cover;background-repeat:no-repeat;background-position:center}
 .va-wrap{text-align:center;padding:3rem 1rem}
 .va-btn{display:inline-block;border:1px solid var(--fg);color:var(--fg);padding:14px 46px;font-family:var(--font-display);font-size:10px;font-weight:400;letter-spacing:.22em;text-transform:uppercase;background:transparent;cursor:pointer;transition:all .3s}
 .va-btn:hover{background:var(--fg);color:var(--bg)}
@@ -266,7 +267,7 @@ button{font-family:var(--font-display)}
 .cb:hover .cb-cta{color:var(--gold)}
 
 /* BRAND STATEMENT (scarlet section) */
-.bs{background:var(--accent);background-size:640px;background-repeat:repeat;background-position:center;padding:clamp(6rem,14vw,11rem) clamp(2rem,6vw,7rem);text-align:center}
+.bs{background:var(--accent);background-size:cover;background-repeat:no-repeat;background-position:center;padding:clamp(6rem,14vw,11rem) clamp(2rem,6vw,7rem);text-align:center}
 .bs-sc{
   display:block;
   font-family:var(--font-display);
@@ -1342,7 +1343,8 @@ function imgs(){
   var cloudUrl = 'url(assets/clouds-pink.png)';
   var nlEl = document.getElementById('clouds-nl');
   if (nlEl){ nlEl.style.backgroundImage = 'url(assets/clouds-nl.png)'; nlEl.style.backgroundSize = 'cover'; nlEl.style.backgroundRepeat = 'no-repeat'; }
-  ['clouds-header','clouds-arrivals','clouds-viewall','clouds-bs-1','clouds-bs-2'].forEach(function(id){
+  // clouds-viewall sits inside .arrivals-sec, so it shows the parent's wash through
+  ['clouds-header','clouds-arrivals','clouds-bs-1','clouds-bs-2'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.style.backgroundImage = cloudUrl;
   });
