@@ -419,7 +419,30 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 .breadcrumb span:hover{color:var(--fg)}
 .breadcrumb .sep{margin:0 .5rem;color:var(--border)}
 .pd-gallery{position:relative}
-.pd-main-img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top center}
+.pd-stage{position:relative;overflow:hidden}
+.pd-main-img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top center;display:block;
+  -webkit-user-select:none;user-select:none}
+/* Arrows are for pointers; on touch the photo is swiped instead. */
+.pd-arrow{position:absolute;top:50%;transform:translateY(-50%);border:none;cursor:pointer;
+  background:rgba(255,255,255,.86);color:var(--fg);font-size:1.5rem;line-height:1;
+  width:38px;height:38px;display:none;align-items:center;justify-content:center;
+  transition:background .2s}
+.pd-arrow:hover{background:#fff}
+.pd-arrow.prev{left:10px}.pd-arrow.next{right:10px}
+.pd-gallery.multi .pd-arrow{display:flex}
+@media(hover:none){.pd-gallery.multi .pd-arrow{display:none}}
+.pd-dots{display:none;justify-content:center;gap:7px;margin-top:.7rem}
+.pd-gallery.multi .pd-dots{display:flex}
+.pd-dot{width:6px;height:6px;border-radius:50%;background:rgba(24,12,20,.2);border:none;padding:0;
+  cursor:pointer;transition:background .2s}
+.pd-dot.on{background:var(--fg)}
+.pd-thumbs{display:none;gap:8px;margin-top:.7rem;flex-wrap:wrap}
+.pd-gallery.multi .pd-thumbs{display:flex}
+@media(hover:none){.pd-gallery.multi .pd-thumbs{display:none}}
+.pd-thumb{width:64px;aspect-ratio:3/4;padding:0;border:1px solid var(--border);background:var(--shell);
+  cursor:pointer;overflow:hidden;transition:border-color .2s}
+.pd-thumb img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.pd-thumb.on{border-color:var(--fg)}
 .pd-info{padding-top:.5rem}
 .pd-cat{font-family:var(--font-display);font-size:9px;font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem}
 .pd-name{font-family:var(--font-display);font-size:clamp(2rem,3.5vw,2.8rem);font-weight:400;color:var(--fg);margin-bottom:.5rem;letter-spacing:.02em}
@@ -907,7 +930,13 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
   </div>
   <div class="pd-wrap">
     <div class="pd-gallery">
-      <img class="pd-main-img" id="pd-img" src="" alt="Product">
+      <div class="pd-stage" id="pd-stage">
+        <img class="pd-main-img" id="pd-img" src="" alt="Product">
+        <button class="pd-arrow prev" id="pd-prev" onclick="pdNav(-1)" aria-label="Previous photo">&#8249;</button>
+        <button class="pd-arrow next" id="pd-next" onclick="pdNav(1)" aria-label="Next photo">&#8250;</button>
+      </div>
+      <div class="pd-dots" id="pd-dots"></div>
+      <div class="pd-thumbs" id="pd-thumbs"></div>
     </div>
     <div class="pd-info">
       <p class="pd-cat" id="pd-cat"></p>
@@ -1292,6 +1321,9 @@ async function loadFromSupabase(){
         ttd:parseFloat(p.price_ttd),usd:parseFloat(p.price_usd),
         sizes:sizes,color:p.color||'',img:SLUG_IMG[p.slug]||null,
         desc:p.description||'',details:p.details||'',care:p.care||'',
+        // Keep every shot (front, back, detail...) — _imgUrl stays the first
+        // one so cards and grids are unaffected.
+        _imgs:pimgs.map(function(i){return i.url;}),
         _imgUrl:pimgs.length?pimgs[0].url:null,_stocks:stocks});
     });
     renderHomeGrid();renderShopGrid();renderThriftGrid();buildThriftNav();
@@ -1439,6 +1471,67 @@ function syncNav(){
 // ── PRODUCT DETAIL ──
 function openProduct(id){ nav('product', {id: id}); }
 
+// ── PRODUCT GALLERY ──
+// Every photo the piece has: front, back, whatever else was uploaded.
+// Thumbnails on pointer devices, swipe + dots on touch.
+let pdImgs = [], pdIdx = 0;
+
+function pdGallery(p){
+  const gal    = document.querySelector('.pd-gallery');
+  const stage  = document.getElementById('pd-img');
+  const dots   = document.getElementById('pd-dots');
+  const thumbs = document.getElementById('pd-thumbs');
+
+  pdImgs = (p._imgs && p._imgs.length) ? p._imgs.slice()
+         : p._imgUrl ? [p._imgUrl]
+         : IMG[p.img] ? ['data:image/jpeg;base64,' + IMG[p.img]]
+         : [];
+  pdIdx = 0;
+
+  // Controls only earn their place when there is more than one photo.
+  gal.classList.toggle('multi', pdImgs.length > 1);
+  dots.innerHTML = pdImgs.length > 1 ? pdImgs.map(function(_, i){
+    return '<button class="pd-dot' + (i === 0 ? ' on' : '') + '" onclick="pdShow(' + i + ')" '
+         + 'aria-label="Photo ' + (i + 1) + '"></button>';
+  }).join('') : '';
+  thumbs.innerHTML = pdImgs.length > 1 ? pdImgs.map(function(src, i){
+    return '<button class="pd-thumb' + (i === 0 ? ' on' : '') + '" onclick="pdShow(' + i + ')" '
+         + 'aria-label="Photo ' + (i + 1) + '"><img src="' + lbEsc(src) + '" alt="" loading="lazy"></button>';
+  }).join('') : '';
+
+  if (pdImgs.length) stage.src = pdImgs[0];
+}
+
+function pdShow(i){
+  if (!pdImgs.length) return;
+  pdIdx = (i + pdImgs.length) % pdImgs.length;
+  document.getElementById('pd-img').src = pdImgs[pdIdx];
+  document.querySelectorAll('#pd-dots .pd-dot').forEach(function(d, k){
+    d.classList.toggle('on', k === pdIdx); });
+  document.querySelectorAll('#pd-thumbs .pd-thumb').forEach(function(t, k){
+    t.classList.toggle('on', k === pdIdx); });
+}
+function pdNav(d){ pdShow(pdIdx + d); }
+
+// Swipe the main photo. Horizontal intent only, so scrolling the page
+// down never flips to the back image.
+(function(){
+  let x0 = null, y0 = null;
+  const stage = function(){ return document.getElementById('pd-stage'); };
+  document.addEventListener('touchstart', function(e){
+    const st = stage();
+    if (!st || !st.contains(e.target) || pdImgs.length < 2) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    x0 = y0 = null;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) pdNav(dx < 0 ? 1 : -1);
+  }, {passive:true});
+})();
+
 function loadProduct(id){
   const p = getProd(id);
   curProd = p; selectedSize = ''; pdQty = 1;
@@ -1456,9 +1549,7 @@ function loadProduct(id){
   document.getElementById('pd-care').textContent = p.care;
   document.getElementById('pd-qty').textContent = '1';
 
-  const imgEl = document.getElementById('pd-img');
-  if (p._imgUrl) imgEl.src = p._imgUrl;
-  else if (IMG[p.img]) imgEl.src = 'data:image/jpeg;base64,' + IMG[p.img];
+  pdGallery(p);
 
   const szDiv = document.getElementById('pd-sizes');
   szDiv.innerHTML = '';
