@@ -498,6 +498,33 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 .lb-prev,.lb-next{position:absolute;top:50%;transform:translateY(-50%);font-size:2rem;color:rgba(255,255,255,.45);background:none;border:none;cursor:pointer;padding:1.25rem;transition:color .2s}
 .lb-prev{left:1rem}.lb-next{right:1rem}
 .lb-prev:hover,.lb-next:hover{color:var(--gold)}
+.lb-count{position:absolute;bottom:1.6rem;left:50%;transform:translateX(-50%);
+  font-family:var(--font-display);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(255,255,255,.55)}
+.lb-img{-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+
+/* COLLECTION TILES — one box per collection, photos collaged inside */
+.coll-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1.25rem,3vw,2.25rem);
+  max-width:var(--cw);margin:0 auto;padding:0 clamp(1.5rem,5vw,4rem) clamp(3rem,6vw,5rem)}
+@media(max-width:900px){.coll-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.coll-grid{grid-template-columns:1fr}}
+.coll{background:none;border:none;padding:0;cursor:pointer;text-align:left;display:block;width:100%}
+.coll-box{position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--shell);
+  display:grid;gap:2px}
+.coll-box.n1{grid-template-columns:1fr;grid-template-rows:1fr}
+.coll-box.n2{grid-template-columns:1fr 1fr;grid-template-rows:1fr}
+.coll-box.n3{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.coll-box.n3 :first-child{grid-row:span 2}
+.coll-box.n4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.coll-box img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease}
+.coll:hover .coll-box img{transform:scale(1.04)}
+.coll-box::after{content:'';position:absolute;inset:0;background:rgba(24,12,20,0);transition:background .3s}
+.coll:hover .coll-box::after{background:rgba(24,12,20,.06)}
+.coll-name{font-family:var(--font-display);font-size:1.15rem;font-weight:400;color:var(--fg);
+  margin-top:.85rem;display:block;letter-spacing:.02em}
+.coll-count{font-family:var(--font-body);font-size:11px;font-weight:400;color:var(--dim);
+  margin-top:.15rem;display:block}
+.coll:focus-visible .coll-box{outline:2px solid var(--fg);outline-offset:3px}
 
 /* TESTIMONIALS */
 .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,4rem)}
@@ -1165,6 +1192,7 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
   <button class="lb-prev" onclick="lbNav(-1)">&#8249;</button>
   <img class="lb-img" id="lb-img" src="" alt="Lookbook">
   <button class="lb-next" onclick="lbNav(1)">&#8250;</button>
+  <span class="lb-count" id="lb-count"></span>
 </div>
 
 <!-- WISHLIST -->
@@ -1934,8 +1962,9 @@ function toggleAcc(btn){
 
 // ── LIGHTBOX ──
 const LB_IMGS = ['JUMP','DUSK','RHINE','BANDAGE','WHITE','STRIPE'];
-// Resolved sources for the lightbox. Null means "use the built-in set";
-// loadLookbook() replaces it with the admin-managed photos.
+// The set currently open in the lightbox. Null means the built-in demo set;
+// opening a collection swaps in that collection's photos so swiping stays
+// inside the collection you tapped.
 let LB_SRC = null;
 let lbIdx = 0;
 function lbSources(){
@@ -1944,14 +1973,44 @@ function lbSources(){
 function openLB(i){
   const src = lbSources();
   if (!src.length) return;
-  lbIdx = i;
-  document.getElementById('lb-img').src = src[i];
+  lbIdx = (i + src.length) % src.length;
+  document.getElementById('lb-img').src = src[lbIdx];
+  const c = document.getElementById('lb-count');
+  if (c) c.textContent = src.length > 1 ? (lbIdx + 1) + ' / ' + src.length : '';
   document.getElementById('lb').classList.add('open');
 }
 function closeLB(){ document.getElementById('lb').classList.remove('open'); }
-function lbNav(d){ const n = lbSources().length; if(!n) return; lbIdx = (lbIdx + d + n) % n; openLB(lbIdx); }
+function lbNav(d){ const n = lbSources().length; if(!n) return; openLB(lbIdx + d); }
 
-// Lookbook photos come from the admin panel. If the table is empty or the
+// Open one collection's photos, starting at the first.
+let LB_COLLECTIONS = [];
+function openCollection(i){
+  const g = LB_COLLECTIONS[i];
+  if (!g || !g.shots.length) return;
+  LB_SRC = g.shots.map(function(s){ return s.image_url; });
+  openLB(0);
+}
+
+// Swipe left/right inside the lightbox. Horizontal intent only, so a
+// vertical drag never counts as a page turn.
+(function(){
+  let x0 = null, y0 = null;
+  const el = function(){ return document.getElementById('lb'); };
+  document.addEventListener('touchstart', function(e){
+    const lb = el();
+    if (!lb || !lb.classList.contains('open')) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    x0 = y0 = null;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) lbNav(dx < 0 ? 1 : -1);
+  }, {passive:true});
+})();
+
+// Lookbook collections come from the admin panel. If there are none, or the
 // request fails, the built-in grid in the markup is left exactly as it is.
 function lbEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -1966,7 +2025,7 @@ async function loadLookbook(){
     ]);
     if (!Array.isArray(colls) || !Array.isArray(shots)) return;
 
-    // Only collections that actually have photos are worth a heading.
+    // A collection with no photos has nothing to show in its box.
     const groups = colls
       .map(function(c){
         return { name:c.name, shots: shots.filter(function(s){ return s.collection_id === c.id; }) };
@@ -1977,22 +2036,27 @@ async function loadLookbook(){
     const host = document.getElementById('lb-collections');
     const dflt = document.getElementById('lb-default');
     if (!host) return;
+    LB_COLLECTIONS = groups;
 
-    // One flat list behind the lightbox, so arrows run across every collection.
-    LB_SRC = [];
-    let n = 0;
-    host.innerHTML = groups.map(function(g){
-      const cells = g.shots.map(function(s, i){
-        LB_SRC.push(s.image_url);
-        return '<button class="lb-cell' + (i === 0 ? ' lb-tall' : '') + '" onclick="openLB(' + (n++) + ')">'
-             + '<img src="' + lbEsc(s.image_url) + '" alt="' + lbEsc(s.caption || g.name)
-             + '" loading="lazy"></button>';
-      }).join('');
-      return '<div class="sh rv"><span class="sh-over">Collection</span>'
-           + '<h2 class="sh-title">' + lbEsc(g.name) + '</h2></div>'
-           + '<div class="lb-grid" style="max-width:var(--cw);margin:0 auto;'
-           + 'padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,4rem)">' + cells + '</div>';
-    }).join('');
+    host.innerHTML =
+      '<div class="sh rv"><span class="sh-over">The Lookbook</span>'
+    + '<h2 class="sh-title">Collections</h2></div>'
+    + '<div class="coll-grid">'
+    + groups.map(function(g, i){
+        // Collage: up to four photos, laid out by how many there are.
+        const tiles = g.shots.slice(0, 4);
+        const cells = tiles.map(function(s){
+          return '<img src="' + lbEsc(s.image_url) + '" alt="" loading="lazy">';
+        }).join('');
+        return '<button class="coll" onclick="openCollection(' + i + ')" '
+             + 'aria-label="Open ' + lbEsc(g.name) + '">'
+             + '<span class="coll-box n' + tiles.length + '">' + cells + '</span>'
+             + '<span class="coll-name">' + lbEsc(g.name) + '</span>'
+             + '<span class="coll-count">' + g.shots.length
+             + (g.shots.length === 1 ? ' photo' : ' photos') + '</span>'
+             + '</button>';
+      }).join('')
+    + '</div>';
 
     if (dflt) dflt.style.display = 'none';
   }catch(e){ console.warn('Lookbook unavailable, using built-in grid:', e); }
