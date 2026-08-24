@@ -86,29 +86,29 @@ button{font-family:var(--font-display)}
 
 .mob-menu-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:5rem 2rem;position:relative}
 
-.mob-close{position:absolute;top:2rem;right:2rem;width:44px;height:44px;border:1px solid rgba(24,12,20,.2);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.mob-close::before,.mob-close::after{content:'';position:absolute;width:20px;height:1px;background:rgba(24,12,20,.7)}
+.mob-close{position:absolute;top:2rem;right:2rem;width:44px;height:44px;border:1px solid rgba(255,255,255,.45);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mob-close::before,.mob-close::after{content:'';position:absolute;width:20px;height:1px;background:rgba(255,255,255,.9)}
 .mob-close::before{transform:rotate(45deg)}
 .mob-close::after{transform:rotate(-45deg)}
 
 .mob-nav-list{display:flex;flex-direction:column;align-items:center;width:min(28rem,88vw)}
-.mob-item{width:100%;text-align:center;border-bottom:1px solid rgba(24,12,20,.14)}
-.mob-item:first-child{border-top:1px solid rgba(24,12,20,.14)}
+.mob-item{width:100%;text-align:center;border-bottom:1px solid rgba(255,255,255,.28)}
+.mob-item:first-child{border-top:1px solid rgba(255,255,255,.28)}
 
 .mob-menu a{
   display:block;
   font-family:var(--font-display);
   font-size:clamp(2.2rem,7.5vw,4rem);
   font-weight:400;
-  color:rgba(24,12,20,.72);
+  color:#FFFFFF;
   line-height:1;
   padding:.85rem 0;
   transition:color .2s,letter-spacing .2s;
   letter-spacing:.02em;
 }
-.mob-menu a:hover{color:var(--fg)}
+.mob-menu a:hover{color:rgba(255,255,255,.75)}
 
-.mob-footer-note{margin-top:2.5rem;font-family:var(--font-display);font-size:9px;font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:rgba(24,12,20,.4)}
+.mob-footer-note{margin-top:2.5rem;font-family:var(--font-display);font-size:9px;font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.6)}
 
 /* CATEGORY NAV */
 .cat-nav{background:var(--bg);border-bottom:1px solid var(--border)}
@@ -574,6 +574,16 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 .wl-panel-close{background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--dim);line-height:1}
 .wl-panel-body{flex:1;overflow-y:auto;padding:1rem}
 .wl-panel-empty{font-family:var(--font-display);font-size:1rem;font-weight:400;color:var(--dim);text-align:center;padding:3rem 1rem}
+.wl-scrim{position:fixed;inset:0;background:rgba(24,12,20,.38);z-index:1150;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+.wl-scrim.open{opacity:1;visibility:visible}
+.wl-item{display:flex;gap:.9rem;align-items:center;padding:.85rem 0;border-bottom:1px solid var(--border)}
+.wl-item:last-child{border-bottom:0}
+.wl-item img{width:62px;height:78px;object-fit:cover;object-position:top center;flex-shrink:0;cursor:pointer;background:var(--shell)}
+.wl-item-info{flex:1;min-width:0}
+.wl-item-name{font-family:var(--font-display);font-size:1rem;color:var(--fg);cursor:pointer;line-height:1.25;margin-bottom:.2rem}
+.wl-item-price{font-family:var(--font-body);font-size:.82rem;color:var(--dim)}
+.wl-item-x{background:none;border:none;cursor:pointer;font-size:1rem;color:var(--dim);padding:.35rem;line-height:1;flex-shrink:0}
+.wl-item-x:hover{color:var(--accent)}
 
 /* UTILITY — keep rv class */
 .rv{}
@@ -821,7 +831,6 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
       <button class="ftab on" data-maincat="all" onclick="filterShop(this,'all','all')">All</button>
       <button class="ftab" data-maincat="clothing" onclick="filterShop(this,'clothing','all')">Clothing</button>
       <button class="ftab" data-maincat="swimwear" onclick="filterShop(this,'swimwear','all')">Swimwear</button>
-      <button class="ftab" data-maincat="thrift" onclick="filterShop(this,'thrift','all')">Thrift</button>
       <div class="fsep" id="sub-sep" style="display:none"></div>
       <span id="sub-tabs"></span>
       <select class="fsort" onchange="sortShop(this.value)">
@@ -1153,6 +1162,16 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
   <button class="lb-next" onclick="lbNav(1)">&#8250;</button>
 </div>
 
+<!-- WISHLIST -->
+<div class="wl-scrim" id="wl-scrim" onclick="closeWishlistPanel()"></div>
+<aside class="wl-panel" id="wl-panel" aria-hidden="true" aria-label="Wishlist">
+  <div class="wl-panel-head">
+    <span class="wl-panel-title">Wishlist</span>
+    <button class="wl-panel-close" onclick="closeWishlistPanel()" aria-label="Close wishlist">&#x2715;</button>
+  </div>
+  <div class="wl-panel-body" id="wl-panel-body"></div>
+</aside>
+
 <!-- TOAST -->
 <div class="toast" id="toast"><span class="toast-check">&#10003;</span><span id="toast-msg">Added to cart</span></div>
 
@@ -1208,10 +1227,10 @@ let PRODS = [
   {id:'black-cat-unitard',name:'Black Cat Unitard',cat:'clothing',sub:'jumpsuits',tag:'New In',ttd:780,usd:115,sizes:['XS','S','M','L','XL'],color:'Black',img:'JUMP',
    desc:"Own every room, every street, every moment. The Black Cat Unitard pairs with anything and commands everything. For the woman who moves like she knows she's the main character.",
    details:"Full-length unitard. Sweetheart neckline. Spaghetti straps. Stretch fabric.",care:"Machine wash cold. Hang dry."},
-  {id:'stripe-paradise',name:'Stripe Paradise Set',cat:'swimwear',sub:'bikini-sets',tag:'Resort Wear',ttd:650,usd:95,sizes:['XS','S','M','L','XL'],color:'Pink/White',img:'STRIPE',
+  {id:'stripe-paradise',name:'Stripe Paradise Set',cat:'swimwear',sub:'bikini',tag:'Resort Wear',ttd:650,usd:95,sizes:['XS','S','M','L','XL'],color:'Pink/White',img:'STRIPE',
    desc:"Pool days, your way. Pink and white stripe triangle set with the Cupid Society signature — chosen for those who bring the energy wherever they go.",
    details:"Triangle bikini top with adjustable ties. Matching brief bottoms. CS logo patch.",care:"Hand wash. Rinse after salt or chlorinated water."},
-  {id:'pink-horizon',name:'Pink Horizon Bikini',cat:'swimwear',sub:'bikini-sets',tag:'New In',ttd:700,usd:103,sizes:['XS','S','M','L','XL'],color:'Pink/Black',img:'DUSK',
+  {id:'pink-horizon',name:'Pink Horizon Bikini',cat:'swimwear',sub:'bikini',tag:'New In',ttd:700,usd:103,sizes:['XS','S','M','L','XL'],color:'Pink/Black',img:'DUSK',
    desc:"Emerge from the water like the main character. Bold pink with black trim — for the woman who makes dusk look like golden hour.",
    details:"Scoop neck bikini top with black binding. High-cut briefs with ring hardware. Cupid's Society logo.",care:"Hand wash. Do not tumble dry."},
   {id:'thrifted-slip',name:'Thrifted Silk Slip',cat:'clothing',sub:'dresses',is_thrift:true,tag:'One of One',ttd:400,usd:59,sizes:['S','M'],color:'Champagne',img:'WHITE',
@@ -1477,8 +1496,8 @@ function addToCartFromPDP(){
 
 // ── SHOP FILTERS ──
 let shopCat = 'all', shopSub = 'all';
-const SUBS = {clothing:['all','dresses','jumpsuits'], swimwear:['all','bikini-sets','cover-ups']};
-const SUBLABELS = {all:'All', dresses:'Dresses', jumpsuits:'Jumpsuits', 'bikini-sets':'Bikini Sets', 'cover-ups':'Cover-ups'};
+const SUBS = {clothing:['all','dresses','jumpsuits','two-piece'], swimwear:['all','bikini','monokini','cover-ups']};
+const SUBLABELS = {all:'All', dresses:'Dresses', jumpsuits:'Jumpsuits', 'two-piece':'Two-piece', bikini:'Bikini', monokini:'Monokini', 'cover-ups':'Cover-ups'};
 function thriftSubs(){
   var seen={}, out=[];
   PRODS.forEach(function(p){
@@ -1596,7 +1615,7 @@ function sortShop(val){
 
 // ── THRIFT PAGE ──
 var thriftCat = 'all', thriftSub = 'all';
-var THRIFT_SUBS = {clothing:['all','dresses','jumpsuits'], swimwear:['all','bikini-sets','cover-ups']};
+var THRIFT_SUBS = {clothing:['all','dresses','jumpsuits','two-piece'], swimwear:['all','bikini','monokini','cover-ups']};
 
 function renderThriftGrid(){
   var grid = document.getElementById('thrift-grid');
@@ -1703,6 +1722,7 @@ function toggleWL(btn, id){
   if (wl.has(id)){ wl.delete(id); btn.classList.remove('on'); btn.textContent = '\u2661'; }
   else { wl.add(id); btn.classList.add('on'); btn.textContent = '\u2665'; }
   safeStore('cs_wl', JSON.stringify(Array.from(wl)));
+  renderWishlistPanel();
 }
 
 function toggleWLById(){
@@ -1720,11 +1740,67 @@ function toggleWLById(){
     h.classList.toggle('on', wl.has(curProd.id));
     h.textContent = wl.has(curProd.id) ? '\u2665' : '\u2661';
   });
+  renderWishlistPanel();
+}
+
+function renderWishlistPanel(){
+  const body = document.getElementById('wl-panel-body');
+  if (!body) return;
+  const items = Array.from(wl)
+    .map(function(id){ return PRODS.find(function(p){ return p.id === id; }); })
+    .filter(Boolean);
+
+  if (!items.length){
+    body.innerHTML = '<p class="wl-panel-empty">Nothing saved yet.<br>Tap the heart on a piece to keep it here.</p>';
+    return;
+  }
+  body.innerHTML = items.map(function(p){
+    const src = p._imgUrl || (IMG[p.img] ? 'data:image/jpeg;base64,' + IMG[p.img] : '');
+    return '<div class="wl-item">'
+      + '<img src="' + src + '" alt="' + lbEsc(p.name) + '" onclick="wlOpenProduct(\'' + p.id + '\')">'
+      + '<div class="wl-item-info">'
+      +   '<div class="wl-item-name" onclick="wlOpenProduct(\'' + p.id + '\')">' + lbEsc(p.name) + '</div>'
+      +   '<div class="wl-item-price">' + fmtPrice(p) + '</div>'
+      + '</div>'
+      + '<button class="wl-item-x" onclick="wlRemove(\'' + p.id + '\')" aria-label="Remove from wishlist">&#x2715;</button>'
+      + '</div>';
+  }).join('');
+}
+
+function wlOpenProduct(id){ closeWishlistPanel(); openProduct(id); }
+
+function wlRemove(id){
+  wl.delete(id);
+  safeStore('cs_wl', JSON.stringify(Array.from(wl)));
+  // keep every heart on the page in sync with the panel
+  document.querySelectorAll('.pheart[data-pid="' + id + '"]').forEach(function(h){
+    h.classList.remove('on'); h.textContent = '♡';
+  });
+  if (curProd && curProd.id === id){
+    const b = document.getElementById('pd-wl');
+    if (b){ b.innerHTML = '♡&nbsp; Save to Wishlist'; b.className = 'wl-btn'; }
+  }
+  renderWishlistPanel();
+}
+
+function openWishlistPanel(){
+  renderWishlistPanel();
+  document.getElementById('wl-panel').classList.add('open');
+  document.getElementById('wl-panel').setAttribute('aria-hidden','false');
+  document.getElementById('wl-scrim').classList.add('open');
+  document.body.classList.add('no-scroll');
+}
+
+function closeWishlistPanel(){
+  document.getElementById('wl-panel').classList.remove('open');
+  document.getElementById('wl-panel').setAttribute('aria-hidden','true');
+  document.getElementById('wl-scrim').classList.remove('open');
+  document.body.classList.remove('no-scroll');
 }
 
 function toggleWishlistPanel(){
-  // simple UX: jump to shop and visually indicate — full wishlist page kept simple via toast
-  showToast(wl.size === 0 ? 'Your wishlist is empty' : wl.size + ' item' + (wl.size===1?'':'s') + ' in your wishlist');
+  const open = document.getElementById('wl-panel').classList.contains('open');
+  if (open) closeWishlistPanel(); else openWishlistPanel();
 }
 
 // ── CART ──
@@ -1891,7 +1967,7 @@ async function loadLookbook(){
   }catch(e){ console.warn('Lookbook unavailable, using built-in grid:', e); }
 }
 document.addEventListener('keydown', function(e){
-  if (e.key === 'Escape') closeLB();
+  if (e.key === 'Escape'){ closeLB(); closeWishlistPanel(); }
   if (e.key === 'ArrowLeft') lbNav(-1);
   if (e.key === 'ArrowRight') lbNav(1);
 });

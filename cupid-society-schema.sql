@@ -2,7 +2,7 @@
 create table if not exists products (
   id uuid primary key default gen_random_uuid(),slug text not null unique,name text not null,
   tag text,cat text not null default 'clothing' check(cat in('clothing','swimwear','thrift')),
-  sub text not null default 'all' check(sub in('all','dresses','jumpsuits','bikini-sets','cover-ups')),
+  sub text not null default 'all' check(sub in('all','dresses','jumpsuits','two-piece','bikini','monokini','cover-ups')),
   color text,price_ttd numeric(10,2) not null default 0 check(price_ttd>=0),
   price_usd numeric(10,2) not null default 0 check(price_usd>=0),
   description text,details text,care text,featured boolean not null default false,sort_order int not null default 0,
@@ -112,3 +112,20 @@ create policy lb_auth_r on storage.objects for select to authenticated
 drop policy if exists lb_auth_w on storage.objects;
 create policy lb_auth_w on storage.objects for all to authenticated
   using(bucket_id='lookbook-images') with check(bucket_id='lookbook-images');
+
+-- SUBCATEGORY UPDATE (see subcategories-migration.sql)
+
+-- 1. Widen the allowed values first, so nothing is rejected mid-way.
+alter table products drop constraint if exists products_sub_check;
+alter table products add  constraint products_sub_check
+  check (sub in ('all','dresses','jumpsuits','two-piece',
+                 'bikini','monokini','cover-ups','bikini-sets'));
+
+-- 2. Move anything still filed under the retired value.
+update products set sub = 'bikini' where sub = 'bikini-sets';
+
+-- 3. Now drop the retired value for good.
+alter table products drop constraint if exists products_sub_check;
+alter table products add  constraint products_sub_check
+  check (sub in ('all','dresses','jumpsuits','two-piece',
+                 'bikini','monokini','cover-ups'));
