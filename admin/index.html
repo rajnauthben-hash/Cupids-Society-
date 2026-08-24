@@ -49,10 +49,16 @@ section.view{animation:rise .22s ease both}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* ---------- bottom nav ---------- */
+/* Scrolls side to side only — touch-action pins it to the horizontal axis so
+   it can never drift up or down while you swipe through the tabs. */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg);
   border-top:1px solid var(--line);display:flex;
+  overflow-x:auto;overflow-y:hidden;touch-action:pan-x;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
   padding-bottom:env(safe-area-inset-bottom)}
-nav.tabs button{flex:1;background:none;border:0;padding:13px 4px 15px;cursor:pointer;
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{flex:0 0 auto;min-width:88px;background:none;border:0;
+  padding:13px 14px 15px;cursor:pointer;white-space:nowrap;
   color:var(--dim);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
   font-weight:500;position:relative}
 nav.tabs button[aria-selected="true"]{color:var(--fg)}
@@ -263,15 +269,17 @@ textarea{min-height:80px;resize:vertical;line-height:1.5}
 
   <main class="wrap">
     <section class="view" id="v-today"></section>
-    <section class="view hide" id="v-stock"></section>
+    <section class="view hide" id="v-clothing"></section>
+    <section class="view hide" id="v-thrift"></section>
     <section class="view hide" id="v-orders"></section>
     <section class="view hide" id="v-lookbook"></section>
   </main>
 
   <nav class="tabs">
-    <button data-tab="today"  aria-selected="true">Today</button>
-    <button data-tab="stock"  aria-selected="false">Pieces</button>
-    <button data-tab="orders" aria-selected="false">Orders
+    <button data-tab="today"    aria-selected="true">Today</button>
+    <button data-tab="clothing" aria-selected="false">Clothing</button>
+    <button data-tab="thrift"   aria-selected="false">Thrift</button>
+    <button data-tab="orders"   aria-selected="false">Orders
       <span class="badge hide" id="pendBadge">0</span></button>
     <button data-tab="lookbook" aria-selected="false">Lookbook</button>
   </nav>
@@ -293,8 +301,7 @@ const CONFIG = {
   SIZES             : ['XS','S','M','L','XL','XXL','One size'],
   TAGS              : ['New In','Bestseller','Resort Wear','One of One','Back in Stock'],
   SUBS : { clothing:['all','dresses','jumpsuits','two-piece'],
-           swimwear:['all','bikini','monokini','cover-ups'],
-           thrift  :['all'] },
+           swimwear:['all','bikini','monokini','cover-ups'] },
   SUBLABEL : { all:'All', dresses:'Dresses', jumpsuits:'Jumpsuits',
                'two-piece':'Two-piece', bikini:'Bikini', monokini:'Monokini',
                'cover-ups':'Cover-ups' }
@@ -310,7 +317,7 @@ const money = (n, cur='TTD') =>
 const slugify = s => s.toLowerCase().trim()
   .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
 
-let DB = { products:[], orders:[], lookbook:[] };
+let DB = { products:[], orders:[], lookbook:[], collections:[] };
 let TAB = 'today';
 
 function toast(msg){
@@ -344,20 +351,23 @@ async function boot(){
 }
 
 async function load(){
-  const [p, o, lb] = await Promise.all([
+  const [p, o, lb, lc] = await Promise.all([
     sb.from('products').select('*, variants(*), product_images(*)')
       .neq('status','archived').order('sort_order'),
     sb.from('orders').select('*, order_items(*)')
       .order('created_at',{ascending:false}).limit(300),
-    sb.from('lookbook_images').select('*').order('display_order')
+    sb.from('lookbook_images').select('*').order('display_order'),
+    sb.from('lookbook_collections').select('*').order('display_order')
   ]);
   if (p.error || o.error) toast('Couldn\u2019t reach the database. Check your connection.');
   // The lookbook table may not exist yet on an un-migrated project; that is not
   // a connection problem, so it gets its own quiet fallback.
   if (lb.error) console.warn('lookbook_images unavailable:', lb.error.message);
+  if (lc.error) console.warn('lookbook_collections unavailable:', lc.error.message);
   DB.products = p.data || [];
   DB.orders   = o.data || [];
   DB.lookbook = lb.data || [];
+  DB.collections = lc.data || [];
   const n = DB.orders.filter(x=>x.status==='pending').length;
   const b = $('#pendBadge'); b.textContent = n; b.classList.toggle('hide', n===0);
 }
@@ -367,14 +377,17 @@ document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('nav.tabs button')
     .forEach(x => x.setAttribute('aria-selected', String(x.dataset.tab===TAB)));
   $('#viewTitle').textContent =
-    {today:'Today',stock:'Pieces',orders:'Orders',lookbook:'Lookbook'}[TAB];
-  ['today','stock','orders','lookbook']
+    {today:'Today',clothing:'Clothing',thrift:'Thrift',orders:'Orders',lookbook:'Lookbook'}[TAB];
+  ['today','clothing','thrift','orders','lookbook']
     .forEach(t => $('#v-'+t).classList.toggle('hide', t!==TAB));
   render(); window.scrollTo(0,0);
+  // keep the active tab in view now that the bar scrolls
+  b.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'});
 });
 function render(){
   if (TAB==='today')    renderToday();
-  if (TAB==='stock')    renderStock();
+  if (TAB==='clothing') renderStock('clothing');
+  if (TAB==='thrift')   renderStock('thrift');
   if (TAB==='orders')   renderOrders();
   if (TAB==='lookbook') renderLookbook();
 }
@@ -504,19 +517,23 @@ function renderToday(){
    PIECES
    ===================================================================== */
 let q = '', filterCat = '';
-function renderStock(){
+// shelf is 'clothing' (everything that is not thrift) or 'thrift'.
+function renderStock(shelf){
+  const onShelf = p => shelf === 'thrift' ? !!p.is_thrift : !p.is_thrift;
   const list = DB.products.filter(p =>
+    onShelf(p) &&
     (!q || p.name.toLowerCase().includes(q.toLowerCase())) &&
     (!filterCat || p.cat === filterCat));
 
-  $('#v-stock').innerHTML = `
-    <button class="btn" id="newProduct" style="margin-bottom:6px">Add a piece</button>
+  $('#v-' + shelf).innerHTML = `
+    <button class="btn" id="newProduct" style="margin-bottom:6px">${
+      shelf === 'thrift' ? 'Add a thrifted piece' : 'Add a piece'}</button>
     <p class="dim tiny" style="margin-bottom:14px;text-align:center;letter-spacing:.06em">
       Tap any piece below to edit it</p>
     <input type="search" id="sq" placeholder="Search pieces" value="${esc(q)}"
       style="margin-bottom:10px">
     <div class="seg">
-      ${[['','All'],['clothing','Clothing'],['swimwear','Swimwear'],['thrift','Thrift']]
+      ${[['','All'],['clothing','Clothing'],['swimwear','Swimwear']]
         .map(([v,l])=>`<button data-cat="${v}" aria-selected="${filterCat===v}">${l}</button>`).join('')}
     </div>
 
@@ -552,14 +569,15 @@ function renderStock(){
     }).join('') : `<div class="empty"><div class="big">Nothing here</div>
       <p class="small">Add a piece to start tracking it.</p></div>`}`;
 
-  $('#newProduct').onclick = () => openProduct(null);
-  $('#sq').oninput = e => {
-    q = e.target.value; const pos = e.target.selectionStart; renderStock();
-    const el = $('#sq'); el.focus(); el.setSelectionRange(pos,pos);
+  const view = $('#v-' + shelf);
+  view.querySelector('#newProduct').onclick = () => openProduct(null, shelf === 'thrift');
+  view.querySelector('#sq').oninput = e => {
+    q = e.target.value; const pos = e.target.selectionStart; renderStock(shelf);
+    const el = view.querySelector('#sq'); el.focus(); el.setSelectionRange(pos,pos);
   };
-  document.querySelectorAll('[data-cat]').forEach(b =>
-    b.onclick = () => { filterCat = b.dataset.cat; renderStock(); });
-  document.querySelectorAll('[data-product]').forEach(b =>
+  view.querySelectorAll('[data-cat]').forEach(b =>
+    b.onclick = () => { filterCat = b.dataset.cat; renderStock(shelf); });
+  view.querySelectorAll('[data-product]').forEach(b =>
     b.onclick = () => openProduct(b.dataset.product));
 }
 
@@ -568,12 +586,13 @@ function renderStock(){
    ===================================================================== */
 let draft = null, slugTouched = false;
 
-function openProduct(id){
+function openProduct(id, isThrift){
   const p = id ? DB.products.find(x=>x.id===id) : null;
   draft = p ? JSON.parse(JSON.stringify(p)) : {
     id:null, slug:'', name:'', tag:'', cat:'clothing', sub:'all', color:'',
     price_ttd:0, price_usd:0, description:'', details:'', care:'',
-    featured:false, status:'active', sort_order:99, variants:[], product_images:[]
+    featured:false, status:'active', sort_order:99,
+    is_thrift:!!isThrift, variants:[], product_images:[]
   };
   draft.variants = (draft.variants||[]).sort(sortSizes);
   slugTouched = !!p;
@@ -607,13 +626,19 @@ function drawSheet(){
       <div class="two">
         <label class="field"><span>Category</span>
           <select id="fCat">
-            ${['clothing','swimwear','thrift'].map(c=>`<option value="${c}"
+            ${['clothing','swimwear'].map(c=>`<option value="${c}"
               ${d.cat===c?'selected':''}>${c[0].toUpperCase()+c.slice(1)}</option>`).join('')}
           </select></label>
         <label class="field"><span>Section</span>
           <select id="fSub">${subs.map(s=>`<option value="${s}" ${d.sub===s?'selected':''}>
             ${CONFIG.SUBLABEL[s]||s}</option>`).join('')}</select></label>
       </div>
+
+      <label class="field"><span>Shelf</span>
+        <select id="fThrift">
+          <option value="0" ${!d.is_thrift?'selected':''}>Main shop — new piece</option>
+          <option value="1" ${ d.is_thrift?'selected':''}>Thrift — pre-loved, one of one</option>
+        </select></label>
 
       <div class="two">
         <label class="field"><span>Colourway</span>
@@ -712,6 +737,7 @@ function readSheet(){
   d.price_usd   = Number($('#fUsd').value)||0;
   d.cat         = $('#fCat').value;
   d.sub         = $('#fSub').value;
+  d.is_thrift   = $('#fThrift').value === '1';
   d.color       = $('#fColor').value.trim();
   d.tag         = $('#fTag').value || null;
   d.status      = $('#fStatus').value;
@@ -735,7 +761,8 @@ function wireSheet(){
     if (!slugTouched) $('#fSlug').value = slugify($('#fName').value);
   };
   $('#fSlug').oninput = () => { slugTouched = true; };
-  $('#fCat').onchange = () => { readSheet(); drawSheet(); };
+  $('#fCat').onchange    = () => { readSheet(); drawSheet(); };
+  $('#fThrift').onchange = () => { readSheet(); drawSheet(); };
 
   document.querySelectorAll('[data-addsize]').forEach(b => b.onclick = () => {
     readSheet();
@@ -786,6 +813,7 @@ async function saveProduct(){
 
   const row = {
     slug:draft.slug, name:draft.name, tag:draft.tag, cat:draft.cat, sub:draft.sub,
+    is_thrift:!!draft.is_thrift,
     color:draft.color, price_ttd:draft.price_ttd, price_usd:draft.price_usd,
     description:draft.description, details:draft.details, care:draft.care,
     featured:draft.featured, status:draft.status
@@ -886,35 +914,109 @@ async function setPrimary(id, quiet){
 
 /* =====================================================================
    LOOKBOOK
-   Photos on the storefront Lookbook page. Order is a plain 1..n list —
-   the number is the position, and saving one renumbers the rest.
+   Photos live inside named collections. The Lookbook tab lists the
+   collections; opening one shows its photos. Order is a plain 1..n list
+   in both places — the number is the position, and saving one renumbers
+   the rest so there are never gaps or ties.
    ===================================================================== */
-const lbSorted = () => DB.lookbook.slice()
+let openColl = null;   // id of the collection being viewed, null = list
+
+const collSorted = () => DB.collections.slice()
+  .sort((a,b) => a.display_order - b.display_order || a.created_at.localeCompare(b.created_at));
+const shotsIn = cid => DB.lookbook.filter(r => r.collection_id === cid)
   .sort((a,b) => a.display_order - b.display_order || a.created_at.localeCompare(b.created_at));
 
 function renderLookbook(){
-  const rows = lbSorted();
-  const live = rows.filter(r => r.is_active).length;
-  const hid  = rows.length - live;
+  if (openColl && !DB.collections.some(c => c.id === openColl)) openColl = null;
+  return openColl ? renderCollection() : renderCollectionList();
+}
+
+/* ---------------- the list of collections ---------------- */
+function renderCollectionList(){
+  const rows = collSorted();
+  const live = rows.filter(c => c.is_active).length;
 
   $('#v-lookbook').innerHTML = `
     <div class="card">
       <div class="small dim" style="margin-bottom:12px">${
         rows.length
-          ? `${live} showing on the site${hid ? ` · ${hid} hidden` : ''}`
-          : 'Photos you add here appear on the Lookbook page.'
-      }</div>
+          ? `${rows.length} collection${rows.length===1?'':'s'} · ${live} showing on the site`
+          : 'Group your lookbook photos into named collections.'}</div>
+      <button class="btn pink" id="collAdd">Add collection</button>
+    </div>
+    ${rows.length ? rows.map((c,i) => collRow(c,i,rows.length)).join('') : `
+      <div class="empty">
+        <div class="big">No collections yet</div>
+        <div class="small">Add one, then put photos inside it.</div>
+      </div>`}`;
+
+  $('#collAdd').onclick = collCreate;
+  $('#v-lookbook').querySelectorAll('[data-coll]').forEach(el => {
+    const id = el.dataset.coll, act = el.dataset.act;
+    if (act === 'open')   el.onclick  = () => { openColl = id; renderLookbook(); window.scrollTo(0,0); };
+    if (act === 'name')   el.onchange = () => collSave(id, { name: el.value.trim() || 'Untitled' });
+    if (act === 'toggle') el.onclick  = () => collToggle(id);
+    if (act === 'del')    el.onclick  = () => collDelete(id);
+    if (act === 'pos')    el.onchange = () => collMove(id, parseInt(el.value,10));
+    if (act === 'up')     el.onclick  = () => collNudge(id,-1);
+    if (act === 'down')   el.onclick  = () => collNudge(id, 1);
+  });
+}
+
+function collRow(c, i, n){
+  const shots = shotsIn(c.id);
+  const cover = shots[0];
+  return `
+  <div class="lb-row${c.is_active ? '' : ' off'}">
+    ${cover
+      ? `<img class="lb-shot" src="${esc(cover.image_url)}" alt="" data-coll="${c.id}" data-act="open">`
+      : `<div class="lb-shot" data-coll="${c.id}" data-act="open"></div>`}
+    <div class="lb-meta">
+      <input type="text" data-coll="${c.id}" data-act="name"
+             value="${esc(c.name)}" placeholder="Collection name">
+      <div class="small dim" style="margin:-2px 0 8px">${
+        shots.length ? `${shots.length} photo${shots.length===1?'':'s'}` : 'No photos yet'}</div>
+      <div class="lb-ctl">
+        <button class="btn sm" data-coll="${c.id}" data-act="open">Open</button>
+        <input class="ord" type="number" min="1" max="${n}" value="${i+1}"
+               data-coll="${c.id}" data-act="pos" aria-label="Position">
+        <button class="btn ghost sm" data-coll="${c.id}" data-act="up"
+                ${i===0?'disabled':''} aria-label="Move up">&uarr;</button>
+        <button class="btn ghost sm" data-coll="${c.id}" data-act="down"
+                ${i===n-1?'disabled':''} aria-label="Move down">&darr;</button>
+        <button class="btn ${c.is_active?'ghost':'pink'} sm"
+                data-coll="${c.id}" data-act="toggle">${c.is_active?'Hide':'Show'}</button>
+        <button class="btn danger sm" data-coll="${c.id}" data-act="del">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- inside one collection ---------------- */
+function renderCollection(){
+  const c = DB.collections.find(x => x.id === openColl);
+  const rows = shotsIn(c.id);
+
+  $('#v-lookbook').innerHTML = `
+    <button class="btn ghost sm" id="collBack" style="margin-bottom:12px">&larr; All collections</button>
+    <div class="card">
+      <label class="field"><span>Collection name</span>
+        <input type="text" id="collName" value="${esc(c.name)}"></label>
+      <div class="small dim" style="margin-bottom:12px">${
+        rows.length ? `${rows.length} photo${rows.length===1?'':'s'}` : 'No photos in here yet.'}</div>
       <button class="btn pink" id="lbAdd">Add photos</button>
       <input type="file" id="lbFile" accept="image/*" multiple hidden>
     </div>
     ${rows.length ? rows.map((r,i) => lbRow(r,i,rows.length)).join('') : `
       <div class="empty">
-        <div class="big">Your lookbook is empty</div>
-        <div class="small">Add a photo to get started.</div>
+        <div class="big">Empty collection</div>
+        <div class="small">Add the first photo above.</div>
       </div>`}`;
 
+  $('#collBack').onclick = () => { openColl = null; renderLookbook(); window.scrollTo(0,0); };
+  $('#collName').onchange = e => collSave(c.id, { name: e.target.value.trim() || 'Untitled' });
   $('#lbAdd').onclick   = () => $('#lbFile').click();
-  $('#lbFile').onchange = e => { lbUpload([...e.target.files]); e.target.value = ''; };
+  $('#lbFile').onchange = e => { lbUpload([...e.target.files], c.id); e.target.value = ''; };
 
   $('#v-lookbook').querySelectorAll('[data-lb]').forEach(el => {
     const id = el.dataset.lb, act = el.dataset.act;
@@ -922,8 +1024,8 @@ function renderLookbook(){
     if (act === 'toggle')  el.onclick  = () => lbToggle(id);
     if (act === 'del')     el.onclick  = () => lbDelete(id);
     if (act === 'pos')     el.onchange = () => lbMove(id, parseInt(el.value,10));
-    if (act === 'up')      el.onclick  = () => lbNudge(id, -1);
-    if (act === 'down')    el.onclick  = () => lbNudge(id,  1);
+    if (act === 'up')      el.onclick  = () => lbNudge(id,-1);
+    if (act === 'down')    el.onclick  = () => lbNudge(id, 1);
   });
 }
 
@@ -938,20 +1040,102 @@ function lbRow(r, i, n){
         <input class="ord" type="number" min="1" max="${n}" value="${i+1}"
                data-lb="${r.id}" data-act="pos" aria-label="Position">
         <button class="btn ghost sm" data-lb="${r.id}" data-act="up"
-                ${i===0 ? 'disabled' : ''} aria-label="Move up">&uarr;</button>
+                ${i===0?'disabled':''} aria-label="Move up">&uarr;</button>
         <button class="btn ghost sm" data-lb="${r.id}" data-act="down"
-                ${i===n-1 ? 'disabled' : ''} aria-label="Move down">&darr;</button>
-        <button class="btn ${r.is_active ? 'ghost' : 'pink'} sm"
-                data-lb="${r.id}" data-act="toggle">${r.is_active ? 'Hide' : 'Show'}</button>
+                ${i===n-1?'disabled':''} aria-label="Move down">&darr;</button>
+        <button class="btn ${r.is_active?'ghost':'pink'} sm"
+                data-lb="${r.id}" data-act="toggle">${r.is_active?'Hide':'Show'}</button>
         <button class="btn danger sm" data-lb="${r.id}" data-act="del">Delete</button>
       </div>
     </div>
   </div>`;
 }
 
-async function lbUpload(files){
+/* ---------------- collection actions ---------------- */
+async function collCreate(){
+  const name = (prompt('Name this collection') || '').trim();
+  if (!name) return;
+  const next = DB.collections.reduce((m,c) => Math.max(m, c.display_order), -1) + 1;
+  const { data, error } = await sb.from('lookbook_collections')
+    .insert({ name, display_order:next, is_active:true }).select().single();
+  if (error) return toast(error.message);
+  DB.collections.push(data);
+  openColl = data.id;
+  renderLookbook();
+  toast('Collection added');
+}
+
+async function collSave(id, patch){
+  Object.assign(DB.collections.find(c => c.id === id), patch);
+  const { error } = await sb.from('lookbook_collections').update(patch).eq('id', id);
+  if (error) return toast(error.message);
+  renderLookbook();
+  toast('Saved');
+}
+
+async function collToggle(id){
+  const c = DB.collections.find(x => x.id === id);
+  const on = !c.is_active;
+  c.is_active = on;
+  renderLookbook();
+  const { error } = await sb.from('lookbook_collections').update({ is_active:on }).eq('id', id);
+  if (error){ c.is_active = !on; renderLookbook(); return toast(error.message); }
+  toast(on ? 'Showing on the site' : 'Hidden from the site');
+}
+
+// Deleting a collection takes its photos with it — rows and stored files.
+async function collDelete(id){
+  const c = DB.collections.find(x => x.id === id);
+  const shots = shotsIn(id);
+  if (!confirm(shots.length
+      ? `Delete "${c.name}" and its ${shots.length} photo${shots.length===1?'':'s'}? This cannot be undone.`
+      : `Delete "${c.name}"?`)) return;
+
+  const paths = shots.map(s => s.storage_path).filter(Boolean);
+  if (paths.length) await sb.storage.from('lookbook-images').remove(paths);
+  // the row's foreign key cascades, but clear them here too so the UI is right
+  await sb.from('lookbook_images').delete().eq('collection_id', id);
+  const { error } = await sb.from('lookbook_collections').delete().eq('id', id);
+  if (error) return toast(error.message);
+
+  DB.lookbook = DB.lookbook.filter(r => r.collection_id !== id);
+  DB.collections = DB.collections.filter(x => x.id !== id);
+  if (openColl === id) openColl = null;
+  await collRenumber();
+  renderLookbook();
+  toast('Collection deleted');
+}
+
+function collNudge(id, d){
+  const rows = collSorted();
+  collMove(id, rows.findIndex(c => c.id === id) + 1 + d);
+}
+
+async function collMove(id, pos){
+  const rows = collSorted();
+  const from = rows.findIndex(c => c.id === id);
+  let to = (Number.isFinite(pos) ? pos : from + 1) - 1;
+  to = Math.max(0, Math.min(rows.length - 1, to));
+  if (to === from) return renderLookbook();
+  rows.splice(to, 0, rows.splice(from,1)[0]);
+  rows.forEach((c,i) => c.display_order = i);
+  renderLookbook();
+  await collRenumber();
+}
+
+async function collRenumber(){
+  const rows = collSorted();
+  rows.forEach((c,i) => c.display_order = i);
+  const res = await Promise.all(rows.map(c =>
+    sb.from('lookbook_collections').update({ display_order:c.display_order }).eq('id', c.id)));
+  const bad = res.find(x => x.error);
+  if (bad) toast(bad.error.message);
+}
+
+/* ---------------- photo actions ---------------- */
+async function lbUpload(files, collectionId){
   if (!files.length) return;
-  let next = DB.lookbook.reduce((m,r) => Math.max(m, r.display_order), -1) + 1;
+  let next = shotsIn(collectionId).reduce((m,r) => Math.max(m, r.display_order), -1) + 1;
 
   for (const file of files){
     const ext  = (file.name.split('.').pop() || 'jpg').toLowerCase();
@@ -962,7 +1146,8 @@ async function lbUpload(files){
 
     const { data:{ publicUrl } } = sb.storage.from('lookbook-images').getPublicUrl(path);
     const { data, error } = await sb.from('lookbook_images').insert({
-      image_url:publicUrl, storage_path:path, display_order:next++, is_active:true
+      image_url:publicUrl, storage_path:path, display_order:next++,
+      is_active:true, collection_id:collectionId
     }).select().single();
     if (error){ toast(error.message); break; }
     DB.lookbook.push(data);
@@ -972,57 +1157,56 @@ async function lbUpload(files){
 }
 
 async function lbSave(id, patch){
-  const row = DB.lookbook.find(r => r.id === id);
-  Object.assign(row, patch);
+  Object.assign(DB.lookbook.find(r => r.id === id), patch);
   const { error } = await sb.from('lookbook_images').update(patch).eq('id', id);
   if (error) return toast(error.message);
   toast('Saved');
 }
 
 async function lbToggle(id){
-  const row = DB.lookbook.find(r => r.id === id);
-  const on  = !row.is_active;
-  row.is_active = on;
+  const r = DB.lookbook.find(x => x.id === id);
+  const on = !r.is_active;
+  r.is_active = on;
   renderLookbook();
   const { error } = await sb.from('lookbook_images').update({ is_active:on }).eq('id', id);
-  if (error){ row.is_active = !on; renderLookbook(); return toast(error.message); }
+  if (error){ r.is_active = !on; renderLookbook(); return toast(error.message); }
   toast(on ? 'Showing on the site' : 'Hidden from the site');
 }
 
 async function lbDelete(id){
-  const row = DB.lookbook.find(r => r.id === id);
-  if (!confirm('Delete this photo from the lookbook?')) return;
-  if (row.storage_path) await sb.storage.from('lookbook-images').remove([row.storage_path]);
+  const r = DB.lookbook.find(x => x.id === id);
+  if (!confirm('Delete this photo?')) return;
+  if (r.storage_path) await sb.storage.from('lookbook-images').remove([r.storage_path]);
   const { error } = await sb.from('lookbook_images').delete().eq('id', id);
   if (error) return toast(error.message);
-  DB.lookbook = DB.lookbook.filter(r => r.id !== id);
-  await lbRenumber();
+  const cid = r.collection_id;
+  DB.lookbook = DB.lookbook.filter(x => x.id !== id);
+  await lbRenumber(cid);
   renderLookbook();
   toast('Photo deleted');
 }
 
 function lbNudge(id, d){
-  const rows = lbSorted();
-  const i = rows.findIndex(r => r.id === id);
-  lbMove(id, i + 1 + d);
+  const r = DB.lookbook.find(x => x.id === id);
+  const rows = shotsIn(r.collection_id);
+  lbMove(id, rows.findIndex(x => x.id === id) + 1 + d);
 }
 
-// Position is 1-based. Move the row, then rewrite every display_order so the
-// list stays a clean 0..n-1 with no gaps or ties.
 async function lbMove(id, pos){
-  const rows = lbSorted();
-  const from = rows.findIndex(r => r.id === id);
+  const r = DB.lookbook.find(x => x.id === id);
+  const rows = shotsIn(r.collection_id);
+  const from = rows.findIndex(x => x.id === id);
   let to = (Number.isFinite(pos) ? pos : from + 1) - 1;
   to = Math.max(0, Math.min(rows.length - 1, to));
   if (to === from) return renderLookbook();
-  rows.splice(to, 0, rows.splice(from, 1)[0]);
-  rows.forEach((r,i) => r.display_order = i);
+  rows.splice(to, 0, rows.splice(from,1)[0]);
+  rows.forEach((x,i) => x.display_order = i);
   renderLookbook();
-  await lbRenumber();
+  await lbRenumber(r.collection_id);
 }
 
-async function lbRenumber(){
-  const rows = lbSorted();
+async function lbRenumber(collectionId){
+  const rows = shotsIn(collectionId);
   rows.forEach((r,i) => r.display_order = i);
   const res = await Promise.all(rows.map(r =>
     sb.from('lookbook_images').update({ display_order:r.display_order }).eq('id', r.id)));

@@ -937,6 +937,10 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
   <div class="ph ph-full">
     <img src="assets/hero-lookbook.jpg" alt="Lookbook" loading="lazy">
   </div>
+  <!-- Filled from the admin panel's collections; the block below is the fallback. -->
+  <div id="lb-collections"></div>
+
+  <div id="lb-default">
   <div class="sh rv"><span class="sh-over">2026 Collection</span><h2 class="sh-title">Editorial</h2></div>
   <div class="lb-grid" id="lb-grid" style="max-width:var(--cw);margin:0 auto;padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,4rem)">
     <button class="lb-cell lb-tall" onclick="openLB(0)"><img data-img="JUMP" alt="Black Cat Unitard" loading="lazy"></button>
@@ -945,6 +949,7 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
     <button class="lb-cell" onclick="openLB(3)"><img data-img="BANDAGE" alt="Blush Bandage Dress" loading="lazy"></button>
     <button class="lb-cell" onclick="openLB(4)"><img data-img="WHITE" alt="White Ruched Mini" loading="lazy"></button>
     <button class="lb-cell" onclick="openLB(5)"><img data-img="STRIPE" alt="Stripe Paradise Set" loading="lazy"></button>
+  </div>
   </div>
   <div class="va-wrap"><button class="va-btn" onclick="navPlain('shop')">Shop the Looks</button></div>
 </div>
@@ -1953,17 +1958,43 @@ function lbEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, functio
 
 async function loadLookbook(){
   try{
-    const rows = await sbGet('lookbook_images?select=image_url,caption,display_order'
-      + '&is_active=eq.true&order=display_order.asc');
-    if (!Array.isArray(rows) || !rows.length) return;
-    const grid = document.getElementById('lb-grid');
-    if (!grid) return;
-    LB_SRC = rows.map(function(r){ return r.image_url; });
-    grid.innerHTML = rows.map(function(r, i){
-      return '<button class="lb-cell' + (i === 0 ? ' lb-tall' : '') + '" onclick="openLB(' + i + ')">'
-           + '<img src="' + lbEsc(r.image_url) + '" alt="' + lbEsc(r.caption || 'Lookbook')
-           + '" loading="lazy"></button>';
+    const [colls, shots] = await Promise.all([
+      sbGet('lookbook_collections?select=id,name,display_order'
+        + '&is_active=eq.true&order=display_order.asc'),
+      sbGet('lookbook_images?select=image_url,caption,display_order,collection_id'
+        + '&is_active=eq.true&order=display_order.asc')
+    ]);
+    if (!Array.isArray(colls) || !Array.isArray(shots)) return;
+
+    // Only collections that actually have photos are worth a heading.
+    const groups = colls
+      .map(function(c){
+        return { name:c.name, shots: shots.filter(function(s){ return s.collection_id === c.id; }) };
+      })
+      .filter(function(g){ return g.shots.length; });
+    if (!groups.length) return;
+
+    const host = document.getElementById('lb-collections');
+    const dflt = document.getElementById('lb-default');
+    if (!host) return;
+
+    // One flat list behind the lightbox, so arrows run across every collection.
+    LB_SRC = [];
+    let n = 0;
+    host.innerHTML = groups.map(function(g){
+      const cells = g.shots.map(function(s, i){
+        LB_SRC.push(s.image_url);
+        return '<button class="lb-cell' + (i === 0 ? ' lb-tall' : '') + '" onclick="openLB(' + (n++) + ')">'
+             + '<img src="' + lbEsc(s.image_url) + '" alt="' + lbEsc(s.caption || g.name)
+             + '" loading="lazy"></button>';
+      }).join('');
+      return '<div class="sh rv"><span class="sh-over">Collection</span>'
+           + '<h2 class="sh-title">' + lbEsc(g.name) + '</h2></div>'
+           + '<div class="lb-grid" style="max-width:var(--cw);margin:0 auto;'
+           + 'padding:0 clamp(1.5rem,5vw,4rem) clamp(2.5rem,6vw,4rem)">' + cells + '</div>';
     }).join('');
+
+    if (dflt) dflt.style.display = 'none';
   }catch(e){ console.warn('Lookbook unavailable, using built-in grid:', e); }
 }
 document.addEventListener('keydown', function(e){
