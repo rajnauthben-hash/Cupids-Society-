@@ -931,6 +931,7 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
       <span id="sub-tabs"></span>
       <select class="fsort" onchange="sortShop(this.value)">
         <option value="">Sort: Newest</option>
+        <option value="in-stock">In stock only</option>
         <option value="price-asc">Price: Low to High</option>
         <option value="price-desc">Price: High to Low</option>
       </select>
@@ -956,6 +957,7 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
       <span id="tsub-tabs"></span>
       <select class="fsort" onchange="sortThrift(this.value)">
         <option value="">Sort: Newest</option>
+        <option value="in-stock">In stock only</option>
         <option value="price-asc">Price: Low to High</option>
         <option value="price-desc">Price: High to Low</option>
       </select>
@@ -1450,6 +1452,11 @@ function buildCard(p){
   card.dataset.thrift = p.is_thrift ? 'true' : 'false';
   card.dataset.id = p.id;
   card.dataset.ttd = p.ttd;
+  // Out of stock when every size reads zero, or the piece is badged as such.
+  const stockVals = p._stocks ? Object.keys(p._stocks).map(function(k){ return p._stocks[k]; }) : [];
+  const soldOut = (stockVals.length && stockVals.every(function(n){ return n <= 0; }))
+    || p.tag === 'Out of Stock';
+  card.dataset.stock = soldOut ? 'out' : 'in';
   const badgeClass = (p.tag === 'New In' || p.tag === 'Bestseller') ? 'pk' : '';
   const imgSrc = p._imgUrl || (IMG[p.img] ? 'data:image/jpeg;base64,'+IMG[p.img] : '');
   card.innerHTML =
@@ -1760,6 +1767,10 @@ function setSubFilter(btn, sub){
   filterShopGrid();
 }
 
+// 'In stock only' lives in the sort dropdown but behaves as a filter, so it
+// has to survive category changes rather than being undone by them.
+var shopStockOnly = false, thriftStockOnly = false;
+
 function filterShopGrid(){
   const cards = document.querySelectorAll('#shop-grid .pcard');
   let count = 0;
@@ -1776,6 +1787,7 @@ function filterShopGrid(){
       var subOk = shopSub === 'all' || card.dataset.sub === shopSub;
       show = !isThrift && catOk && subOk;
     }
+    if (show && shopStockOnly && card.dataset.stock === 'out') show = false;
     card.style.display = show ? '' : 'none';
     if(show) count++;
   });
@@ -1786,6 +1798,9 @@ function filterShopGrid(){
 }
 
 function sortShop(val){
+  shopStockOnly = (val === 'in-stock');
+  filterShopGrid();
+  if (val === 'in-stock') return;
   const grid = document.getElementById('shop-grid');
   const cards = Array.from(grid.children);
   cards.sort(function(a, b){
@@ -1859,6 +1874,7 @@ function filterThriftGrid(){
     var catOk = thriftCat === 'all' || card.dataset.cat === thriftCat;
     var subOk = thriftSub === 'all' || card.dataset.sub === thriftSub;
     var show = catOk && subOk;
+    if (show && thriftStockOnly && card.dataset.stock === 'out') show = false;
     card.style.display = show ? '' : 'none';
     if(show) count++;
   });
@@ -1869,6 +1885,9 @@ function filterThriftGrid(){
 }
 
 function sortThrift(val){
+  thriftStockOnly = (val === 'in-stock');
+  filterThriftGrid();
+  if (val === 'in-stock') return;
   var grid = document.getElementById('thrift-grid');
   var cards = Array.from(grid.children);
   cards.sort(function(a, b){
