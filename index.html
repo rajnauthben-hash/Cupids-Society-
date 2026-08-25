@@ -161,7 +161,9 @@ button{font-family:var(--font-display)}
 .hero{position:relative;height:100vh;min-height:620px;max-height:900px;overflow:hidden}
 @media(min-aspect-ratio:4/3){.hero{height:82vh;max-height:780px}}
 .hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 20%}
-.hero-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
+.hero-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;
+  background:var(--accent) url(assets/clouds-pink.png) center/cover no-repeat;
+  pointer-events:none}
 .hero-vid-mob{display:none}
 @media(max-width:768px){.hero-vid-desk{display:none}.hero-vid-mob{display:block}}
 .hero-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(24,12,20,.55) 0%,rgba(24,12,20,.15) 30%,rgba(24,12,20,0) 55%,rgba(24,12,20,.1) 80%,rgba(24,12,20,.35) 100%)}
@@ -767,12 +769,12 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
 <div id="page-home" class="page active">
 
   <section class="hero">
-    <video class="hero-vid hero-vid-desk" autoplay muted loop playsinline>
-      <source src="assets/hero-landscape.mp4" type="video/mp4">
-    </video>
-    <video class="hero-vid hero-vid-mob" autoplay muted loop playsinline>
-      <source src="assets/hero-portrait.mp4" type="video/mp4">
-    </video>
+    <video class="hero-vid hero-vid-desk" autoplay muted loop playsinline
+           preload="auto" disablepictureinpicture disableremoteplayback
+           aria-hidden="true" tabindex="-1" src="assets/hero-landscape.mp4"></video>
+    <video class="hero-vid hero-vid-mob" autoplay muted loop playsinline
+           preload="auto" disablepictureinpicture disableremoteplayback
+           aria-hidden="true" tabindex="-1" src="assets/hero-portrait.mp4"></video>
     <div class="hero-ov"></div>
     <div class="hero-content">
       <h1 class="hero-h1" style="font-family:'Ballet',cursive;font-style:normal;color:#F1BBD3">Welcome Angel</h1>
@@ -2264,8 +2266,46 @@ window.addEventListener('scroll', function(){
 });
 
 // ── INIT ──
+// ── HERO VIDEO ──
+// In-app browsers (Instagram, TikTok, Facebook) are stricter than Safari and
+// can refuse autoplay, leaving iOS to draw a play button over the frame.
+// Setting muted as a property and calling play() explicitly satisfies most of
+// them; the rest start on the visitor's first touch.
+function heroVideos(){
+  return Array.prototype.slice.call(document.querySelectorAll('.hero-vid'));
+}
+function playHero(){
+  heroVideos().forEach(function(v){
+    if (!v.offsetParent && v.readyState === 0) return;   // hidden by breakpoint
+    v.muted = true;            // property, not just the attribute — iOS checks this
+    v.defaultMuted = true;
+    v.playsInline = true;
+    const p = v.play();
+    if (p && p.catch) p.catch(function(){ /* blocked; retried on interaction */ });
+  });
+}
+function heroPlaying(){
+  return heroVideos().some(function(v){ return !v.paused && v.currentTime > 0; });
+}
+(function(){
+  // Retry on the first sign of life, then stop listening.
+  const kick = function(){
+    playHero();
+    if (heroPlaying()) off();
+  };
+  const off = function(){
+    ['touchstart','pointerdown','click','scroll','keydown','visibilitychange']
+      .forEach(function(e){ document.removeEventListener(e, kick, true); });
+  };
+  ['touchstart','pointerdown','click','scroll','keydown','visibilitychange']
+    .forEach(function(e){ document.addEventListener(e, kick, {capture:true, passive:true}); });
+  // A few nudges early on cover slow in-app browsers that are not ready at load.
+  [0, 300, 1200, 3000].forEach(function(ms){ setTimeout(playHero, ms); });
+})();
+
 document.addEventListener('DOMContentLoaded', function(){
   document.body.classList.add('ready');
+  playHero();
   imgs();
   sizeHeader();
   syncNav();
