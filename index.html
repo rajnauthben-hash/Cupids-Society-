@@ -166,6 +166,14 @@ button{font-family:var(--font-display)}
   pointer-events:none}
 .hero-vid-mob{display:none}
 @media(max-width:768px){.hero-vid-desk{display:none}.hero-vid-mob{display:block}}
+/* Covers the video until it genuinely starts. If an in-app browser refuses
+   autoplay, the visitor sees this still instead of iOS's play button. */
+.hero-still{position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:var(--accent) url(assets/clouds-pink.png) center/cover no-repeat;
+  transition:opacity .6s ease}
+.hero.playing .hero-still{opacity:0}
+.hero-ov{z-index:2}
+.hero-content{z-index:3}
 .hero-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(24,12,20,.55) 0%,rgba(24,12,20,.15) 30%,rgba(24,12,20,0) 55%,rgba(24,12,20,.1) 80%,rgba(24,12,20,.35) 100%)}
 .hero-content{
   position:absolute;
@@ -775,6 +783,7 @@ footer{background:#FFFFFF;border-top:1px solid var(--accent);padding:clamp(4rem,
     <video class="hero-vid hero-vid-mob" autoplay muted loop playsinline
            preload="auto" disablepictureinpicture disableremoteplayback
            aria-hidden="true" tabindex="-1" src="assets/hero-portrait.mp4"></video>
+    <div class="hero-still" aria-hidden="true"></div>
     <div class="hero-ov"></div>
     <div class="hero-content">
       <h1 class="hero-h1" style="font-family:'Ballet',cursive;font-style:normal;color:#F1BBD3">Welcome Angel</h1>
@@ -2284,6 +2293,20 @@ function playHero(){
     if (p && p.catch) p.catch(function(){ /* blocked; retried on interaction */ });
   });
 }
+// Only uncover the video once frames are actually running.
+function markHeroPlaying(){
+  const hero = document.querySelector('.hero');
+  if (hero) hero.classList.add('playing');
+}
+function watchHero(){
+  heroVideos().forEach(function(v){
+    ['playing','timeupdate'].forEach(function(e){
+      v.addEventListener(e, function(){
+        if (!v.paused && v.currentTime > 0.05) markHeroPlaying();
+      });
+    });
+  });
+}
 function heroPlaying(){
   return heroVideos().some(function(v){ return !v.paused && v.currentTime > 0; });
 }
@@ -2305,6 +2328,7 @@ function heroPlaying(){
 
 document.addEventListener('DOMContentLoaded', function(){
   document.body.classList.add('ready');
+  watchHero();
   playHero();
   imgs();
   sizeHeader();
