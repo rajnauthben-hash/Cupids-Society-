@@ -129,3 +129,9 @@ alter table products drop constraint if exists products_sub_check;
 alter table products add  constraint products_sub_check
   check (sub in ('all','dresses','jumpsuits','two-piece',
                  'bikini','monokini','cover-ups'));
+
+-- TOPS & BOTTOMS (see tops-bottoms-migration.sql)
+alter table products drop constraint if exists products_sub_check;
+alter table products add  constraint products_sub_check
+  check (sub in ('all','dresses','tops','bottoms','jumpsuits','two-piece',
+                 'bikini','monokini','cover-ups'));

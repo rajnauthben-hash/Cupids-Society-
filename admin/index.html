@@ -300,11 +300,11 @@ const CONFIG = {
   LOW_STOCK_AT      : 2,
   SIZES             : ['XS','S','M','L','XL','XXL','One size'],
   TAGS              : ['New In','Bestseller','Resort Wear','One of One','Back in Stock','Out of Stock'],
-  SUBS : { clothing:['all','dresses','jumpsuits','two-piece'],
+  SUBS : { clothing:['all','dresses','tops','bottoms','jumpsuits','two-piece'],
            swimwear:['all','bikini','monokini','cover-ups'] },
-  SUBLABEL : { all:'All', dresses:'Dresses', jumpsuits:'Jumpsuits',
-               'two-piece':'Two-piece', bikini:'Bikini', monokini:'Monokini',
-               'cover-ups':'Cover-ups' }
+  SUBLABEL : { all:'All', dresses:'Dresses', tops:'Tops', bottoms:'Bottoms',
+               jumpsuits:'Jumpsuits', 'two-piece':'Two-piece',
+               bikini:'Bikini', monokini:'Monokini', 'cover-ups':'Cover-ups' }
 };
 
 const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
