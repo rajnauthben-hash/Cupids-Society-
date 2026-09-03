@@ -853,9 +853,28 @@ async function saveProduct(){
 }
 function failSave(btn, error){
   btn.disabled = false; btn.textContent = 'Save';
-  toast(error.message?.includes('duplicate') && error.message.includes('slug')
+  const msg = error.message || '';
+
+  // The database restricts which sections and categories it accepts. When a
+  // newly added one has not been allowed yet, say which migration to run
+  // rather than showing the raw constraint error.
+  if (error.code === '23514' || /violates check constraint/i.test(msg)){
+    if (/products_sub_check|_sub_/.test(msg))
+      return toast('The database hasn\u2019t been told about this section yet. '
+        + 'Run tops-bottoms-migration.sql in Supabase, then try again.');
+    if (/products_cat_check|_cat_/.test(msg))
+      return toast('The database hasn\u2019t been told about this category yet. '
+        + 'Run the latest migration in Supabase, then try again.');
+    return toast('The database rejected one of these values. '
+      + 'You may need to run the latest migration in Supabase.');
+  }
+  if (/schema cache|does not exist/i.test(msg))
+    return toast('The database is missing a recent change. '
+      + 'Run the latest migration in Supabase, then reload.');
+
+  toast(msg.includes('duplicate') && msg.includes('slug')
     ? 'Another piece already uses that web address.'
-    : (error.message || 'Couldn\u2019t save. Try again.'));
+    : (msg || 'Couldn\u2019t save. Try again.'));
 }
 
 async function archiveProduct(){
