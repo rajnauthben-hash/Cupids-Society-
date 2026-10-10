@@ -1,0 +1,18 @@
+{
+  "name": "Cupid’s Society — Back Office",
+  "short_name": "Cupid’s",
+  "description": "Add pieces, manage the lookbook and confirm orders for Cupid’s Society.",
+  "id": "/admin/",
+  "start_url": "/admin/",
+  "scope": "/admin/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDF4F8",
+  "theme_color": "#F1BBD3",
+  "categories": ["business", "shopping", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

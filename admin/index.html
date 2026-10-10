@@ -6,6 +6,15 @@
 <meta name="theme-color" content="#F1BBD3">
 <meta name="robots" content="noindex,nofollow">
 <title>Cupid's Society — Back Office</title>
+
+<!-- Installs to the home screen and runs without browser chrome. -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cupid’s">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1468,6 +1477,37 @@ async function saveManual(){
 }
 
 boot();
+</script>
+
+<script>
+/* Registering the worker is what makes the panel installable. It is kept out
+   of the module above so a failure here can never stop the admin loading. */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js', { scope: './' })
+      .then(function (reg) {
+        // Pick up a new build as soon as one is deployed.
+        reg.addEventListener('updatefound', function () {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', function () {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              sw.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+        reg.update();
+      })
+      .catch(function (e) { console.warn('Service worker not registered:', e); });
+
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (reloading) return;
+      reloading = true;
+      location.reload();
+    });
+  });
+}
 </script>
 </body>
 </html>
