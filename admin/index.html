@@ -281,6 +281,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.5}
     <section class="view hide" id="v-clothing"></section>
     <section class="view hide" id="v-thrift"></section>
     <section class="view hide" id="v-orders"></section>
+    <section class="view hide" id="v-customers"></section>
     <section class="view hide" id="v-lookbook"></section>
   </main>
 
@@ -290,6 +291,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.5}
     <button data-tab="thrift"   aria-selected="false">Thrift</button>
     <button data-tab="orders"   aria-selected="false">Orders
       <span class="badge hide" id="pendBadge">0</span></button>
+    <button data-tab="customers" aria-selected="false">Customers</button>
     <button data-tab="lookbook" aria-selected="false">Lookbook</button>
   </nav>
 </div>
@@ -326,7 +328,7 @@ const money = (n, cur='TTD') =>
 const slugify = s => s.toLowerCase().trim()
   .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
 
-let DB = { products:[], orders:[], lookbook:[], collections:[], lookbookReady:true };
+let DB = { products:[], orders:[], lookbook:[], collections:[], customers:[], lookbookReady:true };
 let TAB = 'today';
 
 function toast(msg){
@@ -360,13 +362,14 @@ async function boot(){
 }
 
 async function load(){
-  const [p, o, lb, lc] = await Promise.all([
+  const [p, o, lb, lc, cu] = await Promise.all([
     sb.from('products').select('*, variants(*), product_images(*)')
       .neq('status','archived').order('sort_order'),
     sb.from('orders').select('*, order_items(*)')
       .order('created_at',{ascending:false}).limit(300),
     sb.from('lookbook_images').select('*').order('display_order'),
-    sb.from('lookbook_collections').select('*').order('display_order')
+    sb.from('lookbook_collections').select('*').order('display_order'),
+    sb.from('customers').select('*').order('name')
   ]);
   if (p.error || o.error) toast('Couldn\u2019t reach the database. Check your connection.');
   // The lookbook table may not exist yet on an un-migrated project; that is not
@@ -384,6 +387,9 @@ async function load(){
   DB.orders   = o.data || [];
   DB.lookbook = lb.data || [];
   DB.collections = lc.data || [];
+  if (cu.error) console.warn('customers unavailable:', cu.error.message);
+  DB.customersReady = !cu.error;
+  DB.customers = cu.data || [];
   const n = DB.orders.filter(x=>x.status==='pending').length;
   const b = $('#pendBadge'); b.textContent = n; b.classList.toggle('hide', n===0);
 }
@@ -393,8 +399,9 @@ document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('nav.tabs button')
     .forEach(x => x.setAttribute('aria-selected', String(x.dataset.tab===TAB)));
   $('#viewTitle').textContent =
-    {today:'Today',clothing:'Clothing',thrift:'Thrift',orders:'Orders',lookbook:'Lookbook'}[TAB];
-  ['today','clothing','thrift','orders','lookbook']
+    {today:'Today',clothing:'Clothing',thrift:'Thrift',orders:'Orders',
+     customers:'Customers',lookbook:'Lookbook'}[TAB];
+  ['today','clothing','thrift','orders','customers','lookbook']
     .forEach(t => $('#v-'+t).classList.toggle('hide', t!==TAB));
   render(); window.scrollTo(0,0);
   // keep the active tab in view now that the bar scrolls
@@ -405,6 +412,7 @@ function render(){
   if (TAB==='clothing') renderStock('clothing');
   if (TAB==='thrift')   renderStock('thrift');
   if (TAB==='orders')   renderOrders();
+  if (TAB==='customers') renderCustomers();
   if (TAB==='lookbook') renderLookbook();
 }
 
@@ -948,6 +956,297 @@ async function setPrimary(id, quiet){
 }
 
 /* =====================================================================
+   CUSTOMERS
+   Built from the orders already taken. Spend and history come from the
+   orders themselves, so they are always true; everything else (birthday,
+   store credit, referral code, notes) is kept on the customer record.
+   ===================================================================== */
+let openCust = null;        // id of the customer being viewed, null = list
+let custQ = '', custFilter = 'all';
+
+const custOrders = cid => DB.orders
+  .filter(o => o.customer_id === cid)
+  .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+// Only confirmed sales count as money spent — pending ones may never happen.
+const custSpent = cid => custOrders(cid)
+  .filter(o => o.status === 'confirmed')
+  .reduce((s, o) => s + Number(o.subtotal || 0), 0);
+
+const custSorted = () => DB.customers.slice()
+  .sort((a, b) => custSpent(b.id) - custSpent(a.id) || a.name.localeCompare(b.name));
+
+// A birthday within the next 30 days, so you can actually act on it.
+function daysToBirthday(b){
+  if (!b) return null;
+  const [, m, d] = b.split('-').map(Number);
+  const now = new Date();
+  let next = new Date(now.getFullYear(), m - 1, d);
+  if (next < new Date(now.getFullYear(), now.getMonth(), now.getDate()))
+    next = new Date(now.getFullYear() + 1, m - 1, d);
+  return Math.round((next - new Date(now.getFullYear(), now.getMonth(), now.getDate()))
+    / 86400000);
+}
+const birthdaySoon = c => { const d = daysToBirthday(c.birthday); return d !== null && d <= 30; };
+
+function renderCustomers(){
+  if (openCust && !DB.customers.some(c => c.id === openCust)) openCust = null;
+
+  if (DB.customersReady === false){
+    $('#v-customers').innerHTML = `
+      <div class="card">
+        <h3 style="margin-bottom:8px">One setup step left</h3>
+        <p class="small dim" style="line-height:1.6">
+          The customers table hasn’t been created in Supabase yet. Run
+          <strong>customers-migration.sql</strong> in the SQL Editor, then reload
+          this page. It builds your customer list from the orders you’ve already
+          taken.</p>
+      </div>`;
+    return;
+  }
+  return openCust ? renderCustomer() : renderCustomerList();
+}
+
+/* ---------------- the list ---------------- */
+function renderCustomerList(){
+  let rows = custSorted();
+  if (custFilter === 'vip')      rows = rows.filter(c => c.is_vip);
+  if (custFilter === 'credit')   rows = rows.filter(c => Number(c.store_credit) > 0);
+  if (custFilter === 'birthday') rows = rows.filter(birthdaySoon);
+  if (custQ){
+    const q = custQ.toLowerCase();
+    rows = rows.filter(c => (c.name || '').toLowerCase().includes(q)
+                         || (c.handle || '').toLowerCase().includes(q));
+  }
+
+  const all = DB.customers;
+  const spendAll = all.reduce((s, c) => s + custSpent(c.id), 0);
+  const counts = {
+    all: all.length,
+    vip: all.filter(c => c.is_vip).length,
+    credit: all.filter(c => Number(c.store_credit) > 0).length,
+    birthday: all.filter(birthdaySoon).length,
+  };
+
+  $('#v-customers').innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="k">Customers</div><div class="v num">${counts.all}</div></div>
+      <div class="stat"><div class="k">Lifetime sales</div>
+        <div class="v num">${money(spendAll)}</div></div>
+    </div>
+
+    <button class="btn" id="custAdd" style="margin-bottom:10px">Add a customer</button>
+    <input type="search" id="custSearch" placeholder="Search by name or handle"
+      value="${esc(custQ)}" style="margin-bottom:10px">
+    <div class="seg">
+      ${[['all','Everyone'],['vip','VIP'],['credit','Has credit'],['birthday','Birthdays']]
+        .map(([v,l]) => `<button data-cfilter="${v}" aria-selected="${custFilter===v}">${l}${
+          counts[v] ? ` (${counts[v]})` : ''}</button>`).join('')}
+    </div>
+
+    ${rows.length ? rows.map(custRow).join('') : `
+      <div class="empty">
+        <div class="big">${all.length ? 'No one matches' : 'No customers yet'}</div>
+        <p class="small">${all.length
+          ? 'Try a different search or filter.'
+          : 'Confirm an order and the shopper appears here automatically.'}</p>
+      </div>`}`;
+
+  $('#custAdd').onclick = () => custCreate();
+  $('#custSearch').oninput = e => {
+    custQ = e.target.value; const pos = e.target.selectionStart; renderCustomers();
+    const el = $('#custSearch'); el.focus(); el.setSelectionRange(pos, pos);
+  };
+  $('#v-customers').querySelectorAll('[data-cfilter]').forEach(b =>
+    b.onclick = () => { custFilter = b.dataset.cfilter; renderCustomers(); });
+  $('#v-customers').querySelectorAll('[data-cust]').forEach(b =>
+    b.onclick = () => { openCust = b.dataset.cust; renderCustomers(); window.scrollTo(0,0); });
+}
+
+function custRow(c){
+  const orders = custOrders(c.id);
+  const spent  = custSpent(c.id);
+  const bdays  = daysToBirthday(c.birthday);
+  const credit = Number(c.store_credit) || 0;
+  const last   = orders[0];
+  return `
+  <button class="rowbtn" data-cust="${c.id}">
+    <div class="flex">
+      <div class="grow">
+        <div class="between" style="gap:8px">
+          <h3 class="truncate">${esc(c.name)}</h3>
+          <span style="display:flex;gap:5px;flex:none">
+            ${c.is_vip ? '<span class="pill on">VIP</span>' : ''}
+            ${credit ? `<span class="pill">${money(credit)} credit</span>` : ''}
+            ${bdays !== null && bdays <= 30
+              ? `<span class="pill">${bdays === 0 ? 'Birthday today' : bdays + 'd'}</span>` : ''}
+          </span>
+        </div>
+        <div class="small dim">${c.handle ? esc(c.handle) + ' · ' : ''}${
+          orders.length ? `<span class="num">${orders.length}</span> order${orders.length===1?'':'s'}` : 'No orders yet'
+        } · <span class="num">${money(spent)}</span> spent</div>
+        ${last ? `<div class="tiny dim" style="margin-top:4px">Last order ${
+          new Date(last.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})
+        } · ${esc(last.status)}</div>` : ''}
+      </div>
+      <div style="color:var(--dim);font-size:20px;flex:none;padding-left:10px;align-self:center">›</div>
+    </div>
+  </button>`;
+}
+
+/* ---------------- one customer ---------------- */
+function renderCustomer(){
+  const c = DB.customers.find(x => x.id === openCust);
+  const orders = custOrders(c.id);
+  const spent  = custSpent(c.id);
+  const pending = orders.filter(o => o.status === 'pending').length;
+
+  $('#v-customers').innerHTML = `
+    <button class="btn ghost sm" id="custBack" style="margin-bottom:12px">&larr; All customers</button>
+
+    <div class="stats">
+      <div class="stat"><div class="k">Total spent</div><div class="v num">${money(spent)}</div></div>
+      <div class="stat"><div class="k">Orders</div><div class="v num">${orders.length}
+        ${pending ? `<small>${pending} pending</small>` : ''}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="two">
+        <label class="field"><span>Name</span>
+          <input type="text" id="cName" value="${esc(c.name)}"></label>
+        <label class="field"><span>Instagram</span>
+          <input type="text" id="cHandle" value="${esc(c.handle || '')}" placeholder="@handle"></label>
+      </div>
+      <div class="two">
+        <label class="field"><span>WhatsApp</span>
+          <input type="text" id="cPhone" inputmode="tel" value="${esc(c.phone || '')}"></label>
+        <label class="field"><span>Email</span>
+          <input type="email" id="cEmail" value="${esc(c.email || '')}"></label>
+      </div>
+      <div class="two">
+        <label class="field"><span>Birthday</span>
+          <input type="date" id="cBirthday" value="${esc(c.birthday || '')}"></label>
+        <label class="field"><span>Store credit (TTD)</span>
+          <input type="number" id="cCredit" inputmode="decimal" step="1" min="0"
+            value="${Number(c.store_credit) || 0}"></label>
+      </div>
+      <label class="field"><span>Referral code</span>
+        <input type="text" id="cRef" value="${esc(c.referral_code || '')}"
+          placeholder="Shared with friends for a discount"></label>
+      <label class="field"><span>Notes</span>
+        <textarea id="cNotes" placeholder="Sizes, preferences, anything worth remembering"
+          >${esc(c.notes || '')}</textarea></label>
+      <label class="field"><span>Standing</span>
+        <select id="cVip">
+          <option value="0" ${!c.is_vip ? 'selected' : ''}>Regular customer</option>
+          <option value="1" ${ c.is_vip ? 'selected' : ''}>VIP — free delivery over TT$500</option>
+        </select></label>
+      <div class="two">
+        <button class="btn" id="custSave">Save</button>
+        <button class="btn danger" id="custDel">Delete</button>
+      </div>
+    </div>
+
+    <h3 style="margin:22px 0 10px">Purchase history</h3>
+    ${orders.length ? orders.map(o => `
+      <div class="ticket ${o.status !== 'pending' ? 'settled' : ''}">
+        <div class="between">
+          <span class="ref">${esc(o.ref)}</span>
+          <span class="small dim">${new Date(o.created_at).toLocaleDateString('en-GB',
+            {day:'numeric',month:'short',year:'numeric'})}</span>
+        </div>
+        <ul>${(o.order_items||[]).map(i => `
+          <li><span>${esc(i.product_name)}${i.size ? ' · ' + esc(i.size) : ''}${
+            i.qty > 1 ? ' × ' + i.qty : ''}</span>
+            <span class="num">${money(i.unit_price * i.qty, o.currency)}</span></li>`).join('')}
+        </ul>
+        <div class="between" style="margin-top:9px">
+          <span class="pill ${o.status === 'confirmed' ? 'on' : o.status === 'cancelled' ? 'draft' : ''}">${
+            o.status === 'confirmed' ? 'Paid' : o.status === 'cancelled' ? 'Didn’t buy' : 'Pending'}</span>
+          <strong class="num">${money(o.subtotal, o.currency)}</strong>
+        </div>
+      </div>`).join('') : `
+      <div class="empty"><div class="big">No orders yet</div>
+        <p class="small">Their first confirmed sale will show here.</p></div>`}`;
+
+  $('#custBack').onclick = () => { openCust = null; renderCustomers(); window.scrollTo(0,0); };
+  $('#custSave').onclick = () => custSave(c.id);
+  $('#custDel').onclick  = () => custDelete(c.id);
+}
+
+/* ---------------- actions ---------------- */
+async function custCreate(){
+  const name = ($('#custSearch') && $('#custSearch').value.trim()) || '';
+  const { data, error } = await sb.from('customers')
+    .insert({ name: name || 'New customer' }).select().single();
+  if (error) return toast(custErr(error));
+  DB.customers.push(data);
+  custQ = '';
+  openCust = data.id;
+  renderCustomers();
+  toast('Customer added');
+}
+
+async function custSave(id){
+  const c = DB.customers.find(x => x.id === id);
+  const patch = {
+    name:          $('#cName').value.trim() || 'Unnamed',
+    handle:        $('#cHandle').value.trim() || null,
+    phone:         $('#cPhone').value.trim() || null,
+    email:         $('#cEmail').value.trim() || null,
+    birthday:      $('#cBirthday').value || null,
+    store_credit:  Math.max(0, parseFloat($('#cCredit').value) || 0),
+    referral_code: $('#cRef').value.trim() || null,
+    notes:         $('#cNotes').value.trim() || null,
+    is_vip:        $('#cVip').value === '1',
+  };
+  const { error } = await sb.from('customers').update(patch).eq('id', id);
+  if (error) return toast(custErr(error));
+  Object.assign(c, patch);
+  renderCustomers();
+  toast('Saved');
+}
+
+async function custDelete(id){
+  const c = DB.customers.find(x => x.id === id);
+  const n = custOrders(id).length;
+  if (!confirm(n
+    ? `Delete ${c.name}? Their ${n} order${n===1?'':'s'} stay in Orders, but stop being linked to anyone.`
+    : `Delete ${c.name}?`)) return;
+  const { error } = await sb.from('customers').delete().eq('id', id);
+  if (error) return toast(custErr(error));
+  DB.orders.forEach(o => { if (o.customer_id === id) o.customer_id = null; });
+  DB.customers = DB.customers.filter(x => x.id !== id);
+  openCust = null;
+  renderCustomers();
+  toast('Customer deleted');
+}
+
+function custErr(error){
+  const m = error.message || '';
+  if (/duplicate/i.test(m) && /referral/i.test(m))
+    return 'Another customer already uses that referral code.';
+  if (/schema cache|does not exist/i.test(m))
+    return 'The customers table hasn’t been created yet. Run customers-migration.sql in Supabase.';
+  return m || 'Couldn’t save. Try again.';
+}
+
+/* Keeps the customer list in step with the order book: a sale recorded for
+   someone new creates their record rather than leaving them off the list. */
+async function linkCustomer(name, handle, phone){
+  if (!name && !handle) return null;
+  const key = (handle || name || '').toLowerCase();
+  const hit = DB.customers.find(c => (c.handle || c.name || '').toLowerCase() === key);
+  if (hit) return hit.id;
+  const { data, error } = await sb.from('customers')
+    .insert({ name: name || handle, handle: handle || null, phone: phone || null })
+    .select().single();
+  if (error){ console.warn('customer not created:', error.message); return null; }
+  DB.customers.push(data);
+  return data.id;
+}
+
+/* =====================================================================
    LOOKBOOK
    Photos live inside named collections. The Lookbook tab lists the
    collections; opening one shows its photos. Order is a plain 1..n list
@@ -1456,12 +1755,19 @@ async function saveManual(){
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
   const subtotal = cart.reduce((s,l)=>s+l.unit_price*l.qty, 0);
 
-  const { data:order, error } = await sb.from('orders').insert({
+  const cName   = $('#mName').value.trim()   || null;
+  const cHandle = $('#mHandle').value.trim() || null;
+  // Keeps the customer list in step with the order book.
+  const customerId = await linkCustomer(cName, cHandle, null);
+
+  const row = {
     source:'manual', status:'pending', currency:cartCur, subtotal,
-    customer_name:   $('#mName').value.trim()   || null,
-    customer_handle: $('#mHandle').value.trim() || null,
-    note:            $('#mNote').value.trim()   || null
-  }).select().single();
+    customer_name: cName, customer_handle: cHandle,
+    note: $('#mNote').value.trim() || null
+  };
+  if (customerId) row.customer_id = customerId;
+
+  const { data:order, error } = await sb.from('orders').insert(row).select().single();
   if (error){ toast(error.message); btn.disabled=false; return; }
 
   const { error:iErr } = await sb.from('order_items')
