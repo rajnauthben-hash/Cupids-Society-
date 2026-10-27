@@ -1,0 +1,1777 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#F1BBD3">
+<meta name="description" content="Cupid's Society business command centre. Working prototype on sample figures.">
+</head>
+<body>
+<title>Cupids Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display+SC:wght@400;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* Layout: a fixed section rail on desktop that becomes a slide-over on phones,
+   with one scrolling column of cards. Numbers carry the weight, so the one
+   flourish is the health ring on the dashboard; everything else stays quiet. */
+:root{
+  --pink:#F1BBD3;
+  --pink-deep:#C97BA4;
+  --wash:#FDF4F8;
+  --paper:#FFFFFF;
+  --ink:#180C14;
+  --dim:rgba(24,12,20,.54);
+  --line:rgba(24,12,20,.10);
+  --good:#1D6B4E;
+  --warn:#8A5100;
+  --bad:#A3231F;
+  --display:'Playfair Display SC',Georgia,serif;
+  --ui:'Jost',system-ui,-apple-system,sans-serif;
+  --rail:214px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --pink:#F1BBD3;
+    --pink-deep:#E7A9C8;
+    --wash:#140A10;
+    --paper:#1E1218;
+    --ink:#FBEEF4;
+    --dim:rgba(251,238,244,.58);
+    --line:rgba(251,238,244,.13);
+    --good:#6FD1A6;
+    --warn:#E8B465;
+    --bad:#F0938E;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --pink:#F1BBD3;
+  --pink-deep:#E7A9C8;
+  --wash:#140A10;
+  --paper:#1E1218;
+  --ink:#FBEEF4;
+  --dim:rgba(251,238,244,.58);
+  --line:rgba(251,238,244,.13);
+  --good:#6FD1A6;
+  --warn:#E8B465;
+  --bad:#F0938E;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--wash);color:var(--ink);
+  font-family:var(--ui);font-weight:300;font-size:15px;line-height:1.5;
+  -webkit-text-size-adjust:100%;
+}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{margin:0;font-weight:400;text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--pink-deep);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- shell ---------- */
+#shell{display:flex;min-height:100%}
+
+#rail{
+  width:var(--rail);flex:none;background:var(--paper);
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;
+  position:fixed;inset:0 auto 0 0;z-index:40;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  overflow-y:auto;
+}
+.brand{padding:22px 18px 16px;border-bottom:1px solid var(--line)}
+.brand .mark{display:flex;align-items:center;gap:9px}
+.brand svg{flex:none}
+.brand .name{font-family:var(--display);font-size:14px;letter-spacing:.04em;line-height:1.15}
+.brand .sub{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-top:5px}
+
+#rail nav{padding:10px 8px 18px;display:flex;flex-direction:column;gap:1px}
+#rail nav button{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:none;border:0;padding:9px 10px;border-radius:7px;
+  font-size:13px;color:var(--dim);
+}
+#rail nav button .ico{width:17px;height:17px;flex:none;opacity:.8}
+#rail nav button:hover{background:var(--wash);color:var(--ink)}
+#rail nav button[aria-current="true"]{background:var(--pink);color:var(--ink);font-weight:400}
+#rail nav button[aria-current="true"] .ico{opacity:1}
+.navgroup{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
+  padding:14px 10px 6px;opacity:.75}
+
+#main{flex:1;min-width:0;margin-left:var(--rail);display:flex;flex-direction:column}
+
+#bar{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:30;
+  background:color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;
+  padding:13px clamp(16px,3vw,28px);
+}
+#menuBtn{display:none;background:none;border:0;padding:4px;flex:none}
+#menuBtn span{display:block;width:21px;height:1.5px;background:var(--ink);margin:4.5px 0;border-radius:2px}
+#bar .title{font-family:var(--display);font-size:19px;line-height:1.1;flex:1;min-width:0}
+#bar .period{
+  flex:none;width:auto;max-width:150px;
+  background:var(--wash);border:1px solid var(--line);border-radius:7px;
+  padding:6px 10px;font-size:12px;color:var(--ink);
+}
+#scrim{display:none;position:fixed;inset:0;background:rgba(24,12,20,.4);z-index:35}
+
+#view{padding:clamp(16px,3vw,28px);padding-block:clamp(16px,3vw,24px);max-width:1180px}
+@media(max-width:860px){
+  :root{--rail:252px}
+  #rail{transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(24,12,20,.18)}
+  body.navopen #rail{transform:none}
+  body.navopen #scrim{display:block}
+  #main{margin-left:0}
+  #menuBtn{display:block}
+  #bar .title{font-size:17px}
+}
+
+/* ---------- pieces ---------- */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card + .card{margin-top:12px}
+.sec{margin-top:22px}
+.sec:first-child{margin-top:0}
+.sec > h2{font-family:var(--display);font-size:15px;letter-spacing:.02em;margin-bottom:10px}
+.sec > .hint{font-size:12.5px;color:var(--dim);margin:-6px 0 10px}
+
+.tiles{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px}
+.tile .k{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.tile .v{font-family:var(--display);font-size:23px;line-height:1.15;margin-top:5px}
+.tile .d{font-size:11.5px;margin-top:4px;color:var(--dim)}
+.tile .d.up{color:var(--good)}
+.tile .d.down{color:var(--bad)}
+
+.grid2{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.grid3{display:grid;gap:12px;grid-template-columns:repeat(3,1fr)}
+@media(max-width:800px){.grid2,.grid3{grid-template-columns:1fr}}
+
+.pill{display:inline-block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.pill.on{background:var(--pink);border-color:var(--pink);color:var(--ink)}
+.pill.good{color:var(--good);border-color:color-mix(in srgb,var(--good) 35%,transparent)}
+.pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+.pill.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,transparent)}
+
+.btn{background:var(--ink);color:var(--paper);border:0;border-radius:8px;
+  padding:10px 15px;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+.btn.pink{background:var(--pink);color:var(--ink)}
+.btn.sm{padding:7px 11px;font-size:11px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--paper)}
+.seg button{flex:1;background:none;border:0;padding:8px 6px;font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.seg button[aria-selected="true"]{background:var(--pink);color:var(--ink)}
+.segwrap{overflow-x:auto;scrollbar-width:none;margin-bottom:10px}
+.segwrap::-webkit-scrollbar{display:none}
+.segwrap .seg{min-width:max-content}
+.segwrap .seg button{flex:none;padding:8px 13px}
+
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:360px}
+th{text-align:left;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);font-weight:400;padding:0 10px 8px 0;white-space:nowrap}
+td{padding:10px 10px 10px 0;border-top:1px solid var(--line);vertical-align:middle}
+th:last-child,td:last-child{padding-right:0}
+.r{text-align:right}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--wash)}
+
+.row{display:flex;align-items:center;gap:11px}
+.row .grow{flex:1;min-width:0}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dim{color:var(--dim)}
+.sm{font-size:12.5px}
+.xs{font-size:11px}
+.mono{font-variant-numeric:tabular-nums}
+
+.field{display:block;margin-bottom:12px}
+.field > span{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:5px}
+input,select,textarea{width:100%;background:var(--paper);border:1px solid var(--line);
+  border-radius:8px;padding:10px 11px;font-size:14px;font-weight:300}
+textarea{min-height:76px;resize:vertical}
+.two{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+@media(max-width:560px){.two{grid-template-columns:1fr}}
+
+.bar{height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--pink-deep);border-radius:999px}
+.bar.good > i{background:var(--good)}
+.bar.warn > i{background:var(--warn)}
+
+.empty{text-align:center;padding:34px 16px;color:var(--dim)}
+.empty .big{font-family:var(--display);font-size:17px;color:var(--ink);margin-bottom:5px}
+
+.swatch{width:40px;height:52px;border-radius:5px;flex:none;background:var(--pink);
+  display:grid;place-items:center;font-size:9px;color:var(--ink);opacity:.9;text-align:center;
+  line-height:1.1;padding:3px}
+
+/* the dashboard's one flourish */
+.health{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.health .ring{flex:none}
+.health .legend{flex:1;min-width:190px;display:flex;flex-direction:column;gap:7px}
+.health .legend .l{display:flex;align-items:center;gap:9px;font-size:12.5px}
+.health .legend .l .bar{flex:1}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  transform:translateX(-50%) translateY(12px);background:var(--ink);color:var(--paper);
+  padding:10px 18px;border-radius:999px;font-size:12.5px;z-index:90;opacity:0;
+  transition:all .25s ease;pointer-events:none;white-space:nowrap;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.note{background:var(--pink);border-radius:10px;padding:11px 13px;font-size:12px;
+  color:var(--ink);display:flex;gap:9px;align-items:flex-start}
+.note b{font-weight:500}
+</style>
+
+<div id="shell">
+  <aside id="rail">
+    <div class="brand">
+      <div class="mark">
+        <svg width="26" height="26" viewBox="0 0 512 512" aria-hidden="true">
+          <rect width="512" height="512" rx="104" fill="#F1BBD3"/>
+          <g fill="none" stroke="#180C14" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M214 112 C 132 168, 132 344, 214 400"/>
+            <path d="M214 112 L 214 400" stroke-width="16"/>
+            <path d="M168 256 L 392 256"/>
+            <path d="M352 222 L 394 256 L 352 290"/>
+          </g>
+        </svg>
+        <div>
+          <div class="name">Cupids Society</div>
+          <div class="sub">Command Center</div>
+        </div>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+  </aside>
+
+  <div id="main">
+    <header id="bar">
+      <button id="menuBtn" aria-label="Sections"><span></span><span></span><span></span></button>
+      <h1 class="title" id="viewTitle">Dashboard</h1>
+      <select class="period" id="period" aria-label="Period">
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365" selected>This year</option>
+        <option value="0">All time</option>
+      </select>
+    </header>
+    <div id="view"></div>
+  </div>
+</div>
+<div id="scrim"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================================================================
+   Cupids Society \u2014 Command Center
+   A working prototype. Every figure on every screen is computed from the
+   sample data below, so the numbers agree with each other the way they would
+   in the real thing. Nothing here talks to the shop.
+   =========================================================================== */
+
+const $ = s => document.querySelector(s);
+const el = (t, c, h) => { const n = document.createElement(t);
+  if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TT = n => 'TT$' + Math.round(Number(n) || 0).toLocaleString('en-TT');
+const TTc = n => 'TT$' + (Number(n) || 0).toLocaleString('en-TT',
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct = n => (Math.round(Number(n) || 0)) + '%';
+const dmy = d => new Date(d).toLocaleDateString('en-GB',
+  { day: 'numeric', month: 'short', year: 'numeric' });
+const dm  = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* --- a seeded generator, so the sample business is the same every visit --- */
+let seed = 20260214;
+const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+const pick = a => a[Math.floor(rnd() * a.length)];
+const between = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+
+/* ===================== sample business ===================== */
+const TODAY = new Date(2026, 9, 12);          // 12 Oct 2026
+const iso = d => d.toISOString().slice(0, 10);
+const daysAgo = n => { const d = new Date(TODAY); d.setDate(d.getDate() - n); return d; };
+
+const CATS = {
+  clothing: ['dresses','tops','bottoms','jumpsuits','two-piece'],
+  swimwear: ['bikini','monokini','cover-ups'],
+};
+const SUBLABEL = { dresses:'Dresses', tops:'Tops', bottoms:'Bottoms', jumpsuits:'Jumpsuits',
+  'two-piece':'Two-piece', bikini:'Bikini', monokini:'Monokini', 'cover-ups':'Cover-ups' };
+
+const SUPPLIERS = [
+  { id:'s1', name:'Luxe Label Co.', country:'China', contact:'wa.me/8601234',
+    lead:21, terms:'50% deposit, 50% on ship', rating:4 },
+  { id:'s2', name:'Miami Wholesale Edit', country:'USA', contact:'orders@miamiedit.test',
+    lead:9, terms:'Paid in full', rating:5 },
+  { id:'s3', name:'Local Thrift Runs', country:'Trinidad', contact:'In person',
+    lead:1, terms:'Cash', rating:4 },
+];
+
+const PRODUCTS = [
+  { id:'p1',  name:'Crystal Night Mini',     cat:'clothing', sub:'dresses',    thrift:false, price:850, cost:395, sizes:{XS:1,S:3,M:0,L:2}, supplier:'s1', coll:'Dolly Dreams',  added:70 },
+  { id:'p2',  name:'Blush Bandage Dress',    cat:'clothing', sub:'dresses',    thrift:false, price:750, cost:340, sizes:{S:2,M:2,L:1},     supplier:'s1', coll:'Dolly Dreams',  added:96 },
+  { id:'p3',  name:'Seraphina Two-Piece',    cat:'clothing', sub:'two-piece',  thrift:false, price:690, cost:305, sizes:{S:1,M:0,L:1},     supplier:'s2', coll:'Dolly Dreams',  added:52 },
+  { id:'p4',  name:'Marina Bikini',          cat:'swimwear', sub:'bikini',     thrift:false, price:420, cost:168, sizes:{XS:3,S:5,M:4},    supplier:'s2', coll:'Resort',        added:140 },
+  { id:'p5',  name:'Halo Monokini',          cat:'swimwear', sub:'monokini',   thrift:false, price:460, cost:195, sizes:{S:2,M:3},         supplier:'s2', coll:'Resort',        added:120 },
+  { id:'p6',  name:'White Ruched Mini',      cat:'clothing', sub:'dresses',    thrift:false, price:720, cost:330, sizes:{XS:1,S:2,M:2},    supplier:'s1', coll:'Dolly Dreams',  added:84 },
+  { id:'p7',  name:'Black Cat Unitard',      cat:'clothing', sub:'jumpsuits',  thrift:false, price:780, cost:360, sizes:{S:1,M:1,L:0},     supplier:'s1', coll:null,            added:62 },
+  { id:'p8',  name:'Stripe Paradise Set',    cat:'swimwear', sub:'bikini',     thrift:false, price:390, cost:155, sizes:{S:4,M:3,L:2},     supplier:'s2', coll:'Resort',        added:132 },
+  { id:'p9',  name:'Sheer Cover-Up',         cat:'swimwear', sub:'cover-ups',  thrift:false, price:280, cost:112, sizes:{S:3,M:3},         supplier:'s2', coll:'Resort',        added:118 },
+  { id:'p10', name:'Satin Slip Top',         cat:'clothing', sub:'tops',       thrift:false, price:340, cost:148, sizes:{S:4,M:3,L:1},     supplier:'s2', coll:null,            added:40 },
+  { id:'p11', name:'Wide-Leg Satin Trouser', cat:'clothing', sub:'bottoms',    thrift:false, price:520, cost:235, sizes:{S:2,M:2,L:2},     supplier:'s1', coll:null,            added:34 },
+  { id:'p12', name:'Thrifted Silk Slip',     cat:'clothing', sub:'dresses',    thrift:true,  price:400, cost:85,  sizes:{S:1,M:1},         supplier:'s3', coll:null,            added:28 },
+  { id:'p13', name:'Thrifted Lace Top',      cat:'clothing', sub:'tops',       thrift:true,  price:180, cost:38,  sizes:{S:0},             supplier:'s3', coll:null,            added:46 },
+  { id:'p14', name:'Thrifted Satin Trouser', cat:'clothing', sub:'bottoms',    thrift:true,  price:260, cost:55,  sizes:{M:1},             supplier:'s3', coll:null,            added:22 },
+  { id:'p15', name:'Vintage Slip Dress',     cat:'clothing', sub:'dresses',    thrift:true,  price:340, cost:70,  sizes:{S:1},             supplier:'s3', coll:null,            added:150 },
+  { id:'p16', name:'Pearl Bikini Set',       cat:'swimwear', sub:'bikini',     thrift:false, price:450, cost:185, sizes:{XS:2,S:2,M:1},    supplier:'s2', coll:'Resort',        added:16 },
+];
+const prod = id => PRODUCTS.find(p => p.id === id);
+const stockOf = p => Object.values(p.sizes).reduce((a, b) => a + b, 0);
+
+const FIRST_NAMES = ['Aaliyah','Jade','Simone','Keisha','Anya','Rhea','Chloe','Tamika',
+  'Nia','Sade','Mariah','Zara','Alyssa','Danielle','Shanice','Priya','Tenille','Kerry',
+  'Amrita','Giselle','Renee','Shivani','Tiana','Camille','Reba','Avinash','Leah','Mical',
+  'Natasha','Joelle','Candice','Shenelle','Kavita','Roshni','Tisha','Abigail','Monifa',
+  'Deandra','Krystal','Suzette','Nalini','Cherise','Ayanna','Soraiya','Marsha',
+  'Vashti','Indira','Nicolette','Shermaine','Kavi','Latoya','Anjali','Rochelle',
+  'Trisha','Ebony','Sarika','Michaela'];
+const LAST_NAMES = ['Ramkissoon','Mohammed','Thomas','Charles','Persad','Baptiste',
+  'Joseph','Ali','Williams','Sookdeo','Francis','Khan'];
+
+const CUSTOMERS = [];
+for (let i = 0; i < FIRST_NAMES.length; i++){
+  const fn = FIRST_NAMES[i], ln = pick(LAST_NAMES);
+  CUSTOMERS.push({
+    id: 'c' + (i + 1), name: fn + ' ' + ln,
+    handle: '@' + fn.toLowerCase() + (rnd() > .5 ? '.' + ln.toLowerCase().slice(0, 4) : ''),
+    phone: '868 ' + between(300, 799) + ' ' + String(between(1000, 9999)),
+    birthday: '19' + between(90, 99) + '-' + String(between(1, 12)).padStart(2, '0')
+      + '-' + String(between(1, 28)).padStart(2, '0'),
+    credit: rnd() > .78 ? between(1, 6) * 50 : 0,
+    referral: rnd() > .7 ? fn.toUpperCase().slice(0, 5) + '10' : null,
+    notes: rnd() > .75 ? pick(['Size S. Collects Saturdays.','Prefers swimwear.',
+      'Always asks for thrift drops first.','Pays on delivery.']) : null,
+  });
+}
+const cust = id => CUSTOMERS.find(c => c.id === id);
+
+/* Eight months of trade, generated once so charts and totals are honest. */
+const PAY = ['Bank transfer','Cash','Card','WhatsApp link'];
+/* Not every piece sells. These two sit, which is what a real rail looks like
+   and what the slow-mover screens are there to catch. */
+const DUDS = ['p9','p15'];
+const SELLABLE = PRODUCTS.filter(p => !DUDS.includes(p.id));
+/* Shops are lopsided: a handful of regulars carry most of the takings while a
+   long tail buys once and is never seen again. Squashing the pick toward the
+   front of the list reproduces that, instead of giving everyone equal custom. */
+const pickCustomer = () =>
+  CUSTOMERS[Math.min(CUSTOMERS.length - 1,
+    Math.floor(Math.pow(rnd(), 2.6) * CUSTOMERS.length))];
+const ORDERS = [];
+let refN = 1000;
+for (let d = 245; d >= 0; d--){
+  const date = daysAgo(d);
+  const month = date.getMonth();
+  const season = (month >= 2 && month <= 7) ? 1.35 : 1;      // dry season sells
+  const weekend = (date.getDay() === 0 || date.getDay() === 6) ? 1.4 : 1;
+  const n = rnd() * 1.5 * season * weekend > 1 ? between(1, 2) : 0;
+  for (let k = 0; k < n; k++){
+    const c = pickCustomer();
+    const lines = [];
+    const howMany = rnd() > .74 ? 2 : 1;
+    for (let j = 0; j < howMany; j++){
+      const p = pick(SELLABLE);
+      if (p.thrift && lines.length) continue;
+      const qty = p.thrift ? 1 : (rnd() > .88 ? 2 : 1);
+      lines.push({ pid: p.id, name: p.name, size: pick(Object.keys(p.sizes)),
+        unit: p.price, cost: p.cost, qty });
+    }
+    if (!lines.length) continue;
+    const subtotal = lines.reduce((s, l) => s + l.unit * l.qty, 0);
+    const old = d > 7;
+    const status = old ? (rnd() > .08 ? 'confirmed' : 'cancelled')
+                       : (rnd() > .45 ? 'confirmed' : 'pending');
+    ORDERS.push({
+      id: 'o' + (++refN),
+      ref: 'CS-' + iso(date).slice(2).replace(/-/g, '') + '-' + String(refN).slice(-4),
+      date: iso(date), customer: c.id, items: lines, subtotal, status,
+      paid: status === 'confirmed' ? 'paid' : (rnd() > .6 ? 'deposit' : 'unpaid'),
+      delivery: status !== 'confirmed' ? 'not sent'
+        : (d > 5 ? 'delivered' : pick(['packed','out for delivery','delivered'])),
+      method: pick(PAY),
+      channel: pick(['Website','Instagram DM','WhatsApp','In person']),
+      refund: (status === 'confirmed' && rnd() > .975) ? between(1, 3) * 100 : 0,
+      note: rnd() > .85 ? pick(['Collecting Saturday.','Gift \u2014 please wrap.',
+        'Needs it before the weekend.']) : '',
+    });
+  }
+}
+ORDERS.sort((a, b) => b.date.localeCompare(a.date));
+
+const EXPENSE_CATS = ['Stock purchase','Shipping & duty','Ads','Packaging',
+  'Content & shoots','Transport','Fees','Rent & storage'];
+const EXPENSES = [];
+for (let m = 7; m >= 0; m--){
+  const base = new Date(TODAY); base.setMonth(base.getMonth() - m);
+  EXPENSE_CATS.forEach(cat => {
+    if (cat === 'Stock purchase'){
+      EXPENSES.push({ id:'e'+EXPENSES.length, date: iso(new Date(base.getFullYear(), base.getMonth(), 4)),
+        cat, note:'Supplier order', amount: between(34, 62) * 100 });
+    } else if (rnd() > .25){
+      EXPENSES.push({ id:'e'+EXPENSES.length, date: iso(new Date(base.getFullYear(), base.getMonth(), between(2, 26))),
+        cat, note: cat === 'Ads' ? 'Meta ads' : '', amount: between(2, 14) * 100 });
+    }
+  });
+}
+
+const CAMPAIGNS = [
+  { id:'m1', name:'Resort Drop \u2014 Meta',    kind:'Ads',        start:daysAgo(54), spend:1800, revenue:7400, code:'RESORT15', clicks:2140 },
+  { id:'m2', name:'Keisha K \u2014 reel',       kind:'Influencer', start:daysAgo(38), spend:900,  revenue:3100, code:'KEISHA10', clicks:860 },
+  { id:'m3', name:'Thrift Thursday posts', kind:'Organic',    start:daysAgo(21), spend:0,    revenue:2250, code:null,       clicks:510 },
+  { id:'m4', name:'Birthday Month promo',  kind:'Promo',      start:daysAgo(12), spend:250,  revenue:1480, code:'BDAY20',   clicks:390 },
+  { id:'m5', name:'Carnival Preview \u2014 Meta',kind:'Ads',       start:daysAgo(4),  spend:620,  revenue:410,  code:'CARNI10',  clicks:700 },
+];
+
+const CLOSET = [
+  { id:'k1', pid:'p1',  bought:daysAgo(96),  paid:850, wears:11, status:'in wardrobe' },
+  { id:'k2', pid:'p4',  bought:daysAgo(140), paid:420, wears:18, status:'in wardrobe' },
+  { id:'k3', pid:'p6',  bought:daysAgo(74),  paid:720, wears:4,  status:'in wardrobe' },
+  { id:'k4', pid:'p2',  bought:daysAgo(190), paid:750, wears:22, status:'returned' },
+  { id:'k5', pid:'p7',  bought:daysAgo(60),  paid:780, wears:2,  status:'in wardrobe' },
+  { id:'k6', pid:'p12', bought:daysAgo(210), paid:400, wears:14, status:'renewed' },
+];
+
+const GOALS = [
+  { id:'g1', what:'Revenue',      target:120000, unit:'money',  period:'This year' },
+  { id:'g2', what:'Net profit',   target:42000,  unit:'money',  period:'This year' },
+  { id:'g3', what:'Pieces sold',  target:420,    unit:'count',  period:'This year' },
+  { id:'g4', what:'New customers',target:60,     unit:'count',  period:'This year' },
+];
+
+const POS = [
+  { id:'po1', supplier:'s1', placed:daysAgo(34), expected:daysAgo(13), status:'received',
+    items:[{name:'Crystal Night Mini', qty:8, unit:395},{name:'Blush Bandage Dress', qty:6, unit:340}],
+    shipping:620, duty:480, paid:'paid' },
+  { id:'po2', supplier:'s2', placed:daysAgo(18), expected:daysAgo(-3), status:'in transit',
+    items:[{name:'Marina Bikini', qty:14, unit:168},{name:'Pearl Bikini Set', qty:8, unit:185}],
+    shipping:390, duty:310, paid:'deposit' },
+  { id:'po3', supplier:'s3', placed:daysAgo(9), expected:daysAgo(8), status:'received',
+    items:[{name:'Thrift run \u2014 11 pieces', qty:11, unit:62}], shipping:0, duty:0, paid:'paid' },
+  { id:'po4', supplier:'s1', placed:daysAgo(2), expected:daysAgo(-19), status:'placed',
+    items:[{name:'Black Cat Unitard', qty:6, unit:360},{name:'Satin Slip Top', qty:10, unit:148}],
+    shipping:540, duty:430, paid:'unpaid' },
+];
+
+const SETTINGS = {
+  business:'Cupids Society Boutique', owner:'Soraya', country:'Trinidad & Tobago',
+  email:'Cupidsocietyboutique@gmail.com', whatsapp:'868 000 0000',
+  currency:'TTD', usd:6.8, vat:12.5,
+  freeDelivery:750, freeDeliveryVip:500, deliveryFee:40,
+  methods:['Bank transfer','Cash','Card','WhatsApp link'],
+  expenseCats:EXPENSE_CATS.slice(),
+  roles:[{ who:'Soraya', role:'Owner \u2014 full access' }, { who:'Assistant', role:'Orders & inventory only' }],
+};
+
+/* ===================== derived figures ===================== */
+let PERIOD = 365;
+const inPeriod = d => {
+  if (!PERIOD) return true;
+  const cut = daysAgo(PERIOD);
+  return new Date(d) >= new Date(cut.getFullYear(), cut.getMonth(), cut.getDate());
+};
+const sold = () => ORDERS.filter(o => o.status === 'confirmed' && inPeriod(o.date));
+const revenue  = os => os.reduce((s, o) => s + o.subtotal - (o.refund || 0), 0);
+const cogs     = os => os.reduce((s, o) => s + o.items.reduce((t, l) => t + l.cost * l.qty, 0), 0);
+const unitsSold= os => os.reduce((s, o) => s + o.items.reduce((t, l) => t + l.qty, 0), 0);
+const expenses = () => EXPENSES.filter(e => inPeriod(e.date)).reduce((s, e) => s + e.amount, 0);
+const opex     = () => EXPENSES.filter(e => inPeriod(e.date) && e.cat !== 'Stock purchase')
+  .reduce((s, e) => s + e.amount, 0);
+const inventoryValue = () => PRODUCTS.reduce((s, p) => s + stockOf(p) * p.cost, 0);
+const itemsRemaining = () => PRODUCTS.reduce((s, p) => s + stockOf(p), 0);
+
+function soldPerProduct(os){
+  const m = {};
+  os.forEach(o => o.items.forEach(l => {
+    m[l.pid] = m[l.pid] || { qty:0, rev:0, cost:0 };
+    m[l.pid].qty += l.qty; m[l.pid].rev += l.unit * l.qty; m[l.pid].cost += l.cost * l.qty;
+  }));
+  return m;
+}
+function monthly(){
+  const out = [];
+  for (let m = 7; m >= 0; m--){
+    const d = new Date(TODAY); d.setMonth(d.getMonth() - m);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const os = ORDERS.filter(o => o.status === 'confirmed' && o.date.startsWith(key));
+    const ex = EXPENSES.filter(e => e.date.startsWith(key)).reduce((s, e) => s + e.amount, 0);
+    const rev = revenue(os);
+    out.push({ key, label: MON[d.getMonth()], rev, cogs: cogs(os), ex,
+      profit: rev - cogs(os) - EXPENSES.filter(e => e.date.startsWith(key) && e.cat !== 'Stock purchase')
+        .reduce((s, e) => s + e.amount, 0),
+      units: unitsSold(os) });
+  }
+  return out;
+}
+/* Sell-through: sold against sold plus what is still on the rail. */
+function sellThrough(){
+  const s = unitsSold(sold());
+  return s + itemsRemaining() ? (s / (s + itemsRemaining())) * 100 : 0;
+}
+function cashAvailable(){
+  const all = ORDERS.filter(o => o.status === 'confirmed');
+  return revenue(all) - EXPENSES.reduce((s, e) => s + e.amount, 0);
+}
+const customerSpend = cid => ORDERS
+  .filter(o => o.customer === cid && o.status === 'confirmed')
+  .reduce((s, o) => s + o.subtotal - (o.refund || 0), 0);
+const customerOrders = cid => ORDERS.filter(o => o.customer === cid);
+const isVip = c => customerSpend(c.id) >= 2500;
+
+function daysToBirthday(b){
+  if (!b) return null;
+  const [, m, d] = b.split('-').map(Number);
+  let next = new Date(TODAY.getFullYear(), m - 1, d);
+  if (next < TODAY) next = new Date(TODAY.getFullYear() + 1, m - 1, d);
+  return Math.round((next - TODAY) / 86400000);
+}
+
+/* Health score: five things a small boutique actually lives or dies by, each
+   scored against a target worth hitting rather than curved upward \u2014 a score
+   that always reads 99 tells you nothing. */
+function health(){
+  const os = sold();
+  const rev = revenue(os), cg = cogs(os);
+  const margin = rev ? ((rev - cg) / rev) * 100 : 0;
+  const st = sellThrough();
+  const perP = soldPerProduct(os);
+  const dead = PRODUCTS.filter(p =>
+    stockOf(p) > 0 && (!perP[p.id] || perP[p.id].qty === 0) && p.added > 60).length;
+  const moving = PRODUCTS.length ? (1 - dead / PRODUCTS.length) * 100 : 0;
+  const repeat = CUSTOMERS.filter(c => customerOrders(c.id)
+    .filter(o => o.status === 'confirmed').length > 1).length;
+  const loyalty = CUSTOMERS.length ? (repeat / CUSTOMERS.length) * 100 : 0;
+  const burn = opex() / 8;                        // average month of running costs
+  const months = burn ? cashAvailable() / burn : 6;
+
+  const score = (value, target) => Math.max(0, Math.min(100, (value / target) * 100));
+  const parts = [
+    { k:'Margin',          v: score(margin, 60),  note: pct(margin) + ' gross' },
+    { k:'Sell-through',    v: score(st, 80),      note: pct(st) },
+    { k:'Range moving',    v: score(moving, 90),  note: dead + ' sitting' },
+    { k:'Repeat custom',   v: score(loyalty, 35), note: repeat + ' of ' + CUSTOMERS.length },
+    { k:'Cash runway',     v: score(months, 6),   note: months.toFixed(1) + ' months' },
+  ];
+  return { score: Math.round(parts.reduce((s, p) => s + p.v, 0) / parts.length), parts };
+}
+
+/* ===================== small chart helpers ===================== */
+function lineChart(series, opts){
+  const o = Object.assign({ w:560, h:150, pad:26 }, opts || {});
+  const max = Math.max(1, ...series.flatMap(s => s.vals));
+  const n = series[0].vals.length;
+  const x = i => o.pad + (i * (o.w - o.pad * 2)) / Math.max(1, n - 1);
+  const y = v => o.h - 20 - (v / max) * (o.h - 38);
+  const paths = series.map((s, si) => {
+    const d = s.vals.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
+    const area = d + ` L ${x(n - 1).toFixed(1)} ${o.h - 20} L ${x(0).toFixed(1)} ${o.h - 20} Z`;
+    return `${si === 0 ? `<path d="${area}" fill="var(--pink)" opacity=".28"/>` : ''}
+      <path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"
+        stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${x(n - 1).toFixed(1)}" cy="${y(s.vals[n - 1]).toFixed(1)}" r="3.5" fill="${s.color}"/>`;
+  }).join('');
+  const labels = (opts.labels || []).map((l, i) =>
+    `<text x="${x(i).toFixed(1)}" y="${o.h - 5}" font-size="9" fill="var(--dim)"
+      text-anchor="middle">${esc(l)}</text>`).join('');
+  return `<svg viewBox="0 0 ${o.w} ${o.h}" width="100%" height="${o.h}" role="img"
+    aria-label="${esc(opts.alt || 'Trend')}" style="max-width:100%;display:block">
+    <line x1="${o.pad}" y1="${o.h - 20}" x2="${o.w - o.pad}" y2="${o.h - 20}"
+      stroke="var(--line)" stroke-width="1"/>
+    <text x="${o.pad}" y="12" font-size="9" fill="var(--dim)">${esc(TT(max))}</text>
+    ${paths}${labels}</svg>`;
+}
+function barChart(vals, labels, alt){
+  const w = 560, h = 150, pad = 26, max = Math.max(1, ...vals);
+  const bw = (w - pad * 2) / vals.length;
+  const bars = vals.map((v, i) => {
+    const bh = (v / max) * (h - 38);
+    return `<rect x="${(pad + i * bw + bw * .18).toFixed(1)}" y="${(h - 20 - bh).toFixed(1)}"
+      width="${(bw * .64).toFixed(1)}" height="${Math.max(1, bh).toFixed(1)}" rx="2"
+      fill="${i === vals.length - 1 ? 'var(--ink)' : 'var(--pink)'}"/>`;
+  }).join('');
+  const labs = labels.map((l, i) =>
+    `<text x="${(pad + i * bw + bw / 2).toFixed(1)}" y="${h - 5}" font-size="9"
+      fill="var(--dim)" text-anchor="middle">${esc(l)}</text>`).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img"
+    aria-label="${esc(alt || 'Chart')}" style="max-width:100%;display:block">
+    <text x="${pad}" y="12" font-size="9" fill="var(--dim)">${esc(TT(max))}</text>
+    ${bars}${labs}</svg>`;
+}
+function donut(parts, alt){
+  const total = parts.reduce((s, p) => s + p.v, 0) || 1;
+  const R = 54, C = 2 * Math.PI * R;
+  let off = 0;
+  const segs = parts.map(p => {
+    const len = (p.v / total) * C;
+    const s = `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${p.color}"
+      stroke-width="21" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}"
+      stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)"/>`;
+    off += len; return s;
+  }).join('');
+  return `<svg viewBox="0 0 140 140" width="140" height="140" role="img"
+    aria-label="${esc(alt || 'Split')}" style="flex:none">
+    <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--line)" stroke-width="21"/>
+    ${segs}</svg>`;
+}
+function ring(score){
+  const R = 52, C = 2 * Math.PI * R, len = (score / 100) * C;
+  const col = score >= 70 ? 'var(--good)' : score >= 45 ? 'var(--warn)' : 'var(--bad)';
+  return `<svg class="ring" viewBox="0 0 132 132" width="132" height="132" role="img"
+    aria-label="Business health ${score} out of 100">
+    <circle cx="66" cy="66" r="${R}" fill="none" stroke="var(--line)" stroke-width="12"/>
+    <circle cx="66" cy="66" r="${R}" fill="none" stroke="${col}" stroke-width="12"
+      stroke-linecap="round" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}"
+      transform="rotate(-90 66 66)"/>
+    <text x="66" y="63" text-anchor="middle" font-family="Playfair Display SC, Georgia, serif"
+      font-size="30" fill="var(--ink)">${score}</text>
+    <text x="66" y="82" text-anchor="middle" font-size="9" fill="var(--dim)"
+      letter-spacing="1.6">OUT OF 100</text></svg>`;
+}
+const PIE = ['var(--pink-deep)','var(--ink)','var(--pink)','var(--good)','var(--warn)','var(--bad)'];
+
+/* ===================== shared bits ===================== */
+const tile = (k, v, d, cls) => `<div class="tile"><div class="k">${esc(k)}</div>
+  <div class="v num">${v}</div>${d ? `<div class="d ${cls || ''}">${d}</div>` : ''}</div>`;
+
+function statusPill(s){
+  const m = { confirmed:['good','Paid'], pending:['warn','Pending'], cancelled:['','Didn\u2019t buy'],
+    paid:['good','Paid'], deposit:['warn','Deposit'], unpaid:['bad','Unpaid'],
+    delivered:['good','Delivered'], packed:['','Packed'], 'out for delivery':['warn','On the way'],
+    'not sent':['','Not sent'], received:['good','Received'], 'in transit':['warn','In transit'],
+    placed:['','Placed'] };
+  const [c, l] = m[s] || ['', s];
+  return `<span class="pill ${c}">${esc(l)}</span>`;
+}
+function table(cols, rows, onRow){
+  const t = el('div', 'tablewrap');
+  t.innerHTML = `<table><thead><tr>${cols.map(c =>
+    `<th class="${c.r ? 'r' : ''}">${esc(c.h)}</th>`).join('')}</tr></thead><tbody>${
+    rows.map((r, i) => `<tr class="${onRow ? 'click' : ''}" data-i="${i}">${
+      r.map((cell, ci) => `<td class="${cols[ci] && cols[ci].r ? 'r' : ''}">${cell}</td>`).join('')
+    }</tr>`).join('')}</tbody></table>`;
+  if (onRow) t.querySelectorAll('tr.click').forEach(tr =>
+    tr.onclick = () => onRow(Number(tr.dataset.i)));
+  return t;
+}
+const sec = (title, hint) => {
+  const s = el('section', 'sec');
+  if (title) s.appendChild(el('h2', null, esc(title)));
+  if (hint) s.appendChild(el('p', 'hint', esc(hint)));
+  return s;
+};
+
+/* ===================== sections ===================== */
+const SECTIONS = [
+  { id:'dashboard', label:'Dashboard',  group:'Overview', icon:'M3 10 10 3l7 7v7a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1z' },
+  { id:'inventory', label:'Inventory',  group:'Trade',    icon:'M3 7h14v10H3zM6 7V4h8v3' },
+  { id:'orders',    label:'Orders',     group:'Trade',    icon:'M4 4h9l3 3v9H4zM7 9h6M7 12h6' },
+  { id:'customers', label:'Customers',  group:'Trade',    icon:'M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM1 17c0-3 3-5 6-5s6 2 6 5M14 7a2.5 2.5 0 1 0 0-5' },
+  { id:'closet',    label:'Cupids Closet', group:'Trade', icon:'M10 3v4M4 17h12l-6-10z' },
+  { id:'finances',  label:'Finances',   group:'Money',    icon:'M10 2v16M6 6h6a2 2 0 0 1 0 4H8a2 2 0 0 0 0 4h6' },
+  { id:'suppliers', label:'Suppliers',  group:'Money',    icon:'M2 7h11v7H2zM13 9h3l2 3v2h-5M4 16.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0M13 16.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0' },
+  { id:'marketing', label:'Marketing',  group:'Growth',   icon:'M3 8v4l9 4V4zM13 8a3 3 0 0 1 0 4' },
+  { id:'analytics', label:'Analytics',  group:'Growth',   icon:'M3 17V9M8 17V4M13 17v-6M18 17V7' },
+  { id:'goals',     label:'Goals',      group:'Growth',   icon:'M10 17a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' },
+  { id:'settings',  label:'Settings',   group:'Admin',    icon:'M10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM10 1.5v2M10 16.5v2M3.5 10h-2M18.5 10h-2M5 5 3.6 3.6M16.4 16.4 15 15M15 5l1.4-1.4M3.6 16.4 5 15' },
+];
+let ROUTE = 'dashboard';
+
+function buildNav(){
+  const nav = $('#nav'); nav.innerHTML = '';
+  let group = null;
+  SECTIONS.forEach(s => {
+    if (s.group !== group){ group = s.group; nav.appendChild(el('div', 'navgroup', esc(group))); }
+    const b = el('button', null,
+      `<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+         aria-hidden="true"><path d="${s.icon}"/></svg><span>${esc(s.label)}</span>`);
+    b.setAttribute('aria-current', String(s.id === ROUTE));
+    b.onclick = () => go(s.id);
+    nav.appendChild(b);
+  });
+}
+function go(id){
+  ROUTE = id;
+  document.body.classList.remove('navopen');
+  buildNav();
+  $('#viewTitle').textContent = SECTIONS.find(s => s.id === id).label;
+  render();
+  window.scrollTo(0, 0);
+}
+function render(){
+  const v = $('#view'); v.innerHTML = '';
+  ({ dashboard:viewDashboard, inventory:viewInventory, orders:viewOrders,
+     customers:viewCustomers, finances:viewFinances, suppliers:viewSuppliers,
+     closet:viewCloset, marketing:viewMarketing, analytics:viewAnalytics,
+     goals:viewGoals, settings:viewSettings })[ROUTE](v);
+}
+
+/* ---------- 1. Dashboard ---------- */
+function viewDashboard(v){
+  const os = sold(), rev = revenue(os), cg = cogs(os);
+  const gross = rev - cg, net = gross - opex();
+  const mo = monthly();
+  const prev = mo[mo.length - 2] || { rev:0, profit:0 };
+  const cur = mo[mo.length - 1] || { rev:0, profit:0 };
+  const delta = (a, b) => b ? Math.round(((a - b) / b) * 100) : 0;
+  const h = health();
+
+  const hero = sec();
+  hero.innerHTML = `<div class="card" style="background:var(--pink);border-color:var(--pink)">
+    <div style="font-family:var(--display);font-size:20px">Good morning, ${esc(SETTINGS.owner)}</div>
+    <div class="sm" style="margin-top:3px;color:rgba(24,12,20,.72)">
+      Here\u2019s where ${esc(SETTINGS.business)} stands today.</div></div>`;
+  v.appendChild(hero);
+
+  const s1 = sec();
+  s1.innerHTML = `<div class="tiles">
+    ${tile('Total sales', TT(rev), (delta(cur.rev, prev.rev) >= 0 ? '\u25b2 ' : '\u25bc ') +
+      Math.abs(delta(cur.rev, prev.rev)) + '% vs last month',
+      delta(cur.rev, prev.rev) >= 0 ? 'up' : 'down')}
+    ${tile('Gross profit', TT(gross), pct(rev ? gross / rev * 100 : 0) + ' margin')}
+    ${tile('Net profit', TT(net), 'after ' + TT(opex()) + ' running costs')}
+    ${tile('Cash available', TT(cashAvailable()), 'sales less everything paid out')}
+  </div>`;
+  v.appendChild(s1);
+
+  const s2 = sec();
+  s2.innerHTML = `<div class="tiles">
+    ${tile('Inventory value', TT(inventoryValue()), 'at cost')}
+    ${tile('Items remaining', itemsRemaining(), 'pieces on the rail')}
+    ${tile('Sell-through', pct(sellThrough()), unitsSold(os) + ' sold this period')}
+    ${tile('Running costs', TT(opex()), 'excluding stock')}
+  </div>`;
+  v.appendChild(s2);
+
+  const s3 = sec('Business health', 'Five things a boutique lives or dies by, scored together.');
+  const hc = el('div', 'card');
+  hc.innerHTML = `<div class="health">${ring(h.score)}
+    <div class="legend">${h.parts.map(p => `<div class="l">
+      <span style="width:104px;flex:none" class="dim">${esc(p.k)}</span>
+      <span class="bar ${p.v >= 70 ? 'good' : p.v >= 45 ? 'warn' : ''}">
+        <i style="width:${Math.max(3, Math.round(p.v))}%"></i></span>
+      <span class="xs dim" style="width:96px;flex:none;text-align:right">${esc(p.note)}</span>
+    </div>`).join('')}</div></div>`;
+  s3.appendChild(hc);
+  v.appendChild(s3);
+
+  const s4 = sec('Sales and profit', 'Last eight months.');
+  const c4 = el('div', 'card');
+  c4.innerHTML = lineChart(
+    [{ vals: mo.map(m => m.rev), color:'var(--pink-deep)' },
+     { vals: mo.map(m => Math.max(0, m.profit)), color:'var(--ink)' }],
+    { labels: mo.map(m => m.label), alt:'Revenue and profit by month' }) +
+    `<div class="between xs dim" style="margin-top:8px">
+      <span><span style=\"color:var(--pink-deep)\">\u25cf</span> Sales &nbsp; <span style="color:var(--ink)">\u25cf</span> Net profit</span>
+      <span>${esc(mo[0].label)} \u2013 ${esc(mo[mo.length - 1].label)}</span></div>`;
+  s4.appendChild(c4);
+  v.appendChild(s4);
+
+  const perP = soldPerProduct(os);
+  const best = Object.entries(perP).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+  const s5 = sec('Best sellers');
+  const c5 = el('div', 'card');
+  c5.appendChild(table(
+    [{h:'Piece'},{h:'Sold',r:true},{h:'Revenue',r:true},{h:'Left',r:true}],
+    best.map(([pid, m]) => {
+      const p = prod(pid);
+      return [esc(p.name) + (p.thrift ? ' <span class="pill">Thrift</span>' : ''),
+        `<span class="num">${m.qty}</span>`, `<span class="num">${TT(m.rev)}</span>`,
+        `<span class="num ${stockOf(p) ? '' : 'dim'}">${stockOf(p)}</span>`];
+    }), i => { go('inventory'); setTimeout(() => openProduct(best[i][0]), 30); }));
+  s5.appendChild(c5);
+  v.appendChild(s5);
+
+  const fresh = PRODUCTS.filter(p => p.added <= 30).sort((a, b) => a.added - b.added);
+  const s6 = sec('Just landed', 'Added in the last month.');
+  const c6 = el('div', 'card');
+  if (fresh.length){
+    c6.appendChild(table([{h:'Piece'},{h:'Added'},{h:'Price',r:true},{h:'Stock',r:true}],
+      fresh.map(p => [esc(p.name), '<span class="dim sm">' + dm(daysAgo(p.added)) + '</span>',
+        `<span class="num">${TT(p.price)}</span>`, `<span class="num">${stockOf(p)}</span>`])));
+  } else c6.innerHTML = '<div class="empty"><div class="big">Nothing new this month</div></div>';
+  s6.appendChild(c6);
+  v.appendChild(s6);
+}
+
+/* ---------- 2. Inventory ---------- */
+let invTab = 'all', invQ = '';
+function viewInventory(v){
+  const perP = soldPerProduct(ORDERS.filter(o => o.status === 'confirmed'));
+  let rows = PRODUCTS.slice();
+  if (invTab === 'clothing') rows = rows.filter(p => p.cat === 'clothing' && !p.thrift);
+  if (invTab === 'swimwear') rows = rows.filter(p => p.cat === 'swimwear' && !p.thrift);
+  if (invTab === 'thrift')   rows = rows.filter(p => p.thrift);
+  if (invTab === 'low')      rows = rows.filter(p => stockOf(p) > 0 && stockOf(p) <= 2);
+  if (invTab === 'out')      rows = rows.filter(p => stockOf(p) === 0);
+  if (invTab === 'slow')     rows = rows.filter(p => stockOf(p) > 0 && p.added > 60
+                                && (!perP[p.id] || perP[p.id].qty <= 1));
+  if (invQ) rows = rows.filter(p => p.name.toLowerCase().includes(invQ.toLowerCase()));
+
+  const s0 = sec();
+  s0.innerHTML = `<div class="tiles">
+    ${tile('Pieces', PRODUCTS.length, itemsRemaining() + ' in stock')}
+    ${tile('Value at cost', TT(inventoryValue()), 'what it owes you')}
+    ${tile('Retail value', TT(PRODUCTS.reduce((s, p) => s + stockOf(p) * p.price, 0)),
+      'if it all sells')}
+    ${tile('Out of stock', PRODUCTS.filter(p => stockOf(p) === 0).length, 'needs reordering')}
+  </div>`;
+  v.appendChild(s0);
+
+  const s = sec();
+  const seg = el('div', 'segwrap');
+  seg.innerHTML = `<div class="seg">${[['all','Everything'],['clothing','Clothing'],
+    ['swimwear','Swimwear'],['thrift','Thrift'],['low','Low stock'],['out','Out'],['slow','Slow movers']]
+    .map(([k, l]) => `<button data-t="${k}" aria-selected="${invTab === k}">${l}</button>`).join('')}</div>`;
+  seg.querySelectorAll('button').forEach(b =>
+    b.onclick = () => { invTab = b.dataset.t; render(); });
+  s.appendChild(seg);
+
+  const search = el('input');
+  search.type = 'search'; search.placeholder = 'Search pieces'; search.value = invQ;
+  search.style.marginBottom = '10px';
+  search.oninput = e => { invQ = e.target.value; const p = e.target.selectionStart;
+    render(); const n = $('#view input[type=search]'); if (n){ n.focus(); n.setSelectionRange(p, p); } };
+  s.appendChild(search);
+
+  const card = el('div', 'card');
+  if (!rows.length){
+    card.innerHTML = '<div class="empty"><div class="big">Nothing here</div>' +
+      '<p class="sm">Try another filter.</p></div>';
+  } else {
+    card.appendChild(table(
+      [{h:'Piece'},{h:'Section'},{h:'Cost',r:true},{h:'Price',r:true},
+       {h:'Margin',r:true},{h:'Stock',r:true},{h:'Sold',r:true}],
+      rows.map(p => {
+        const m = ((p.price - p.cost) / p.price) * 100;
+        const st = stockOf(p);
+        return [
+          `<div class="row"><span class="swatch">${esc(p.name.split(' ')[0])}</span>
+            <span class="grow"><span class="trunc" style="display:block">${esc(p.name)}</span>
+            <span class="xs dim">${p.thrift ? 'Thrift \u00b7 one of one'
+              : esc(SUBLABEL[p.sub] || p.sub)}${p.coll ? ' \u00b7 ' + esc(p.coll) : ''}</span></span></div>`,
+          `<span class="sm dim">${esc(SUBLABEL[p.sub] || p.sub)}</span>`,
+          `<span class="num">${TT(p.cost)}</span>`,
+          `<span class="num">${TT(p.price)}</span>`,
+          `<span class="num ${m >= 55 ? '' : 'dim'}">${pct(m)}</span>`,
+          st === 0 ? '<span class="pill bad">Out</span>'
+            : st <= 2 ? `<span class="pill warn">${st} left</span>`
+            : `<span class="num">${st}</span>`,
+          `<span class="num dim">${perP[p.id] ? perP[p.id].qty : 0}</span>`,
+        ];
+      }), i => openProduct(rows[i].id)));
+  }
+  s.appendChild(card);
+  v.appendChild(s);
+}
+function openProduct(pid){
+  const p = prod(pid);
+  if (!p) return;
+  const perP = soldPerProduct(ORDERS.filter(o => o.status === 'confirmed'))[pid] || { qty:0, rev:0, cost:0 };
+  const v = $('#view'); v.innerHTML = '';
+  const back = el('button', 'btn ghost sm', '&larr; Inventory');
+  back.style.marginBottom = '12px';
+  back.onclick = () => render();
+  v.appendChild(back);
+
+  const s = sec();
+  s.innerHTML = `
+    <div class="tiles">
+      ${tile('Sold', perP.qty, 'all time')}
+      ${tile('Revenue', TT(perP.rev), '')}
+      ${tile('Profit', TT(perP.rev - perP.cost), pct(perP.rev ? (perP.rev - perP.cost) / perP.rev * 100 : 0) + ' margin')}
+      ${tile('In stock', stockOf(p), Object.entries(p.sizes).map(([k, n]) => k + ' ' + n).join(' \u00b7 '))}
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="two">
+        <label class="field"><span>Name</span><input value="${esc(p.name)}"></label>
+        <label class="field"><span>Collection</span><input value="${esc(p.coll || '')}"></label>
+      </div>
+      <div class="two">
+        <label class="field"><span>Cost you pay</span><input type="number" value="${p.cost}"></label>
+        <label class="field"><span>Price you charge</span><input type="number" value="${p.price}"></label>
+      </div>
+      <div class="two">
+        <label class="field"><span>Category</span><select>
+          ${Object.keys(CATS).map(c => `<option ${p.cat === c ? 'selected' : ''}>${c}</option>`).join('')}
+        </select></label>
+        <label class="field"><span>Section</span><select>
+          ${CATS[p.cat].map(sb => `<option value="${sb}" ${p.sub === sb ? 'selected' : ''}>${
+            SUBLABEL[sb]}</option>`).join('')}
+        </select></label>
+      </div>
+      <label class="field"><span>Shelf</span><select>
+        <option ${!p.thrift ? 'selected' : ''}>Main shop \u2014 new piece</option>
+        <option ${p.thrift ? 'selected' : ''}>Thrift \u2014 one of one</option></select></label>
+      <div class="note"><span>\u2661</span><span>At ${TT(p.cost)} cost and ${TT(p.price)} retail you keep
+        <b>${TT(p.price - p.cost)}</b> a piece, a ${pct((p.price - p.cost) / p.price * 100)} margin.
+        Selling the ${stockOf(p)} left brings in <b>${TT(stockOf(p) * (p.price - p.cost))}</b> profit.</span></div>
+      <div class="btnrow" style="margin-top:13px">
+        <button class="btn" id="pSave">Save</button>
+        <button class="btn ghost" id="pStock">Adjust stock</button>
+      </div>
+    </div>`;
+  v.appendChild(s);
+  $('#pSave').onclick  = () => toast('Saved \u2014 sample data, resets on reload');
+  $('#pStock').onclick = () => toast('Stock editing comes with the real database');
+}
+
+/* ---------- 3. Orders ---------- */
+let ordTab = 'pending';
+function viewOrders(v){
+  const all = ORDERS;
+  const counts = {
+    pending: all.filter(o => o.status === 'pending').length,
+    confirmed: all.filter(o => o.status === 'confirmed').length,
+    cancelled: all.filter(o => o.status === 'cancelled').length,
+    refund: all.filter(o => o.refund > 0).length,
+  };
+  let rows = ordTab === 'refund' ? all.filter(o => o.refund > 0)
+           : all.filter(o => o.status === ordTab);
+  rows = rows.slice(0, 60);
+
+  const s0 = sec();
+  s0.innerHTML = `<div class="tiles">
+    ${tile('Awaiting payment', counts.pending,
+      TT(all.filter(o => o.status === 'pending').reduce((s, o) => s + o.subtotal, 0)) + ' held up')}
+    ${tile('To deliver', all.filter(o => o.status === 'confirmed'
+      && o.delivery !== 'delivered').length, 'packed or on the way')}
+    ${tile('Orders this period', sold().length, unitsSold(sold()) + ' pieces')}
+    ${tile('Refunds', TT(all.reduce((s, o) => s + (o.refund || 0), 0)), counts.refund + ' orders')}
+  </div>`;
+  v.appendChild(s0);
+
+  const s = sec();
+  const seg = el('div', 'segwrap');
+  seg.innerHTML = `<div class="seg">${[['pending','Pending ('+counts.pending+')'],
+    ['confirmed','Paid ('+counts.confirmed+')'],['cancelled','Didn\u2019t buy'],
+    ['refund','Refunds ('+counts.refund+')']]
+    .map(([k, l]) => `<button data-t="${k}" aria-selected="${ordTab === k}">${l}</button>`).join('')}</div>`;
+  seg.querySelectorAll('button').forEach(b => b.onclick = () => { ordTab = b.dataset.t; render(); });
+  s.appendChild(seg);
+
+  const card = el('div', 'card');
+  if (!rows.length){
+    card.innerHTML = '<div class="empty"><div class="big">Nothing here</div></div>';
+  } else {
+    card.appendChild(table(
+      [{h:'Order'},{h:'Customer'},{h:'Payment'},{h:'Delivery'},{h:'Total',r:true}],
+      rows.map(o => {
+        const c = cust(o.customer);
+        return [
+          `<span class="xs dim">${esc(o.ref)}</span><br>
+           <span class="sm">${dm(o.date)} \u00b7 ${esc(o.channel)}</span>`,
+          `<span class="trunc" style="display:block;max-width:150px">${esc(c ? c.name : '\u2014')}</span>
+           <span class="xs dim">${esc(o.items.length)} item${o.items.length === 1 ? '' : 's'}</span>`,
+          statusPill(o.paid) + `<br><span class="xs dim">${esc(o.method)}</span>`,
+          statusPill(o.delivery),
+          `<span class="num">${TT(o.subtotal)}</span>${o.refund
+            ? `<br><span class="xs" style="color:var(--bad)">\u2212${TT(o.refund)}</span>` : ''}`,
+        ];
+      }), i => openOrder(rows[i].id)));
+  }
+  s.appendChild(card);
+  v.appendChild(s);
+}
+function openOrder(oid){
+  const o = ORDERS.find(x => x.id === oid);
+  const c = cust(o.customer);
+  const v = $('#view'); v.innerHTML = '';
+  const back = el('button', 'btn ghost sm', '&larr; Orders');
+  back.style.marginBottom = '12px'; back.onclick = () => render();
+  v.appendChild(back);
+
+  const cost = o.items.reduce((s, l) => s + l.cost * l.qty, 0);
+  const s = sec();
+  s.innerHTML = `
+    <div class="card">
+      <div class="between">
+        <div><div style="font-family:var(--display);font-size:17px">${esc(o.ref)}</div>
+          <div class="sm dim">${dmy(o.date)} \u00b7 ${esc(o.channel)}</div></div>
+        <div style="text-align:right">${statusPill(o.status)}</div>
+      </div>
+      <div class="tablewrap" style="margin-top:14px"><table>
+        <tbody>${o.items.map(l => `<tr>
+          <td>${esc(l.name)} <span class="xs dim">${esc(l.size)}${l.qty > 1 ? ' \u00d7 ' + l.qty : ''}</span></td>
+          <td class="r num">${TT(l.unit * l.qty)}</td></tr>`).join('')}
+          <tr><td class="dim">Subtotal</td><td class="r num">${TT(o.subtotal)}</td></tr>
+          ${o.refund ? `<tr><td style="color:var(--bad)">Refunded</td>
+            <td class="r num" style="color:var(--bad)">\u2212${TT(o.refund)}</td></tr>` : ''}
+          <tr><td class="dim">Cost of goods</td><td class="r num dim">${TT(cost)}</td></tr>
+          <tr><td><b>Profit on this order</b></td>
+            <td class="r num"><b>${TT(o.subtotal - (o.refund || 0) - cost)}</b></td></tr>
+        </tbody></table></div>
+      ${o.note ? `<div class="note" style="margin-top:12px"><span>\u2661</span>
+        <span>\u201c${esc(o.note)}\u201d</span></div>` : ''}
+      <div class="two" style="margin-top:14px">
+        <label class="field"><span>Payment</span><select>
+          ${['paid','deposit','unpaid'].map(x => `<option ${o.paid === x ? 'selected' : ''}>${x}</option>`).join('')}
+        </select></label>
+        <label class="field"><span>Delivery</span><select>
+          ${['not sent','packed','out for delivery','delivered'].map(x =>
+            `<option ${o.delivery === x ? 'selected' : ''}>${x}</option>`).join('')}
+        </select></label>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="oConfirm">${o.status === 'confirmed' ? 'Update' : 'Confirm sale'}</button>
+        <button class="btn ghost" id="oCust">Open customer</button>
+        <button class="btn ghost" id="oRefund">Record refund</button>
+      </div>
+    </div>`;
+  v.appendChild(s);
+  $('#oConfirm').onclick = () => toast('Sample data \u2014 resets on reload');
+  $('#oRefund').onclick  = () => toast('Sample data \u2014 resets on reload');
+  $('#oCust').onclick    = () => { go('customers'); setTimeout(() => openCustomer(o.customer), 30); };
+}
+
+/* ---------- 4. Customers ---------- */
+let cusTab = 'all', cusQ = '';
+function viewCustomers(v){
+  let rows = CUSTOMERS.slice().sort((a, b) => customerSpend(b.id) - customerSpend(a.id));
+  if (cusTab === 'vip')      rows = rows.filter(isVip);
+  if (cusTab === 'credit')   rows = rows.filter(c => c.credit > 0);
+  if (cusTab === 'birthday') rows = rows.filter(c => { const d = daysToBirthday(c.birthday);
+    return d !== null && d <= 45; });
+  if (cusTab === 'repeat')   rows = rows.filter(c => customerOrders(c.id)
+    .filter(o => o.status === 'confirmed').length > 1);
+  if (cusQ) rows = rows.filter(c => (c.name + ' ' + c.handle).toLowerCase()
+    .includes(cusQ.toLowerCase()));
+
+  const spendAll = CUSTOMERS.reduce((s, c) => s + customerSpend(c.id), 0);
+  const s0 = sec();
+  s0.innerHTML = `<div class="tiles">
+    ${tile('Customers', CUSTOMERS.length, CUSTOMERS.filter(isVip).length + ' VIP')}
+    ${tile('Lifetime sales', TT(spendAll), '')}
+    ${tile('Average spend', TT(spendAll / Math.max(1, CUSTOMERS.length)), 'per customer')}
+    ${tile('Store credit out', TT(CUSTOMERS.reduce((s, c) => s + c.credit, 0)), 'owed back')}
+  </div>`;
+  v.appendChild(s0);
+
+  const s = sec();
+  const seg = el('div', 'segwrap');
+  seg.innerHTML = `<div class="seg">${[['all','Everyone'],['vip','VIP'],['repeat','Repeat'],
+    ['credit','Has credit'],['birthday','Birthdays']]
+    .map(([k, l]) => `<button data-t="${k}" aria-selected="${cusTab === k}">${l}</button>`).join('')}</div>`;
+  seg.querySelectorAll('button').forEach(b => b.onclick = () => { cusTab = b.dataset.t; render(); });
+  s.appendChild(seg);
+
+  const search = el('input');
+  search.type = 'search'; search.placeholder = 'Search by name or handle'; search.value = cusQ;
+  search.style.marginBottom = '10px';
+  search.oninput = e => { cusQ = e.target.value; const p = e.target.selectionStart;
+    render(); const n = $('#view input[type=search]'); if (n){ n.focus(); n.setSelectionRange(p, p); } };
+  s.appendChild(search);
+
+  const card = el('div', 'card');
+  if (!rows.length) card.innerHTML = '<div class="empty"><div class="big">No one matches</div></div>';
+  else card.appendChild(table(
+    [{h:'Customer'},{h:'Orders',r:true},{h:'Spent',r:true},{h:'Standing'}],
+    rows.map(c => {
+      const n = customerOrders(c.id).filter(o => o.status === 'confirmed').length;
+      const bd = daysToBirthday(c.birthday);
+      return [
+        `<span class="trunc" style="display:block;max-width:170px">${esc(c.name)}</span>
+         <span class="xs dim">${esc(c.handle)}</span>`,
+        `<span class="num">${n}</span>`,
+        `<span class="num">${TT(customerSpend(c.id))}</span>`,
+        (isVip(c) ? '<span class="pill on">VIP</span> ' : '') +
+        (c.credit ? `<span class="pill">${TT(c.credit)}</span> ` : '') +
+        (bd !== null && bd <= 45 ? `<span class="pill warn">${bd === 0 ? 'Birthday' : bd + 'd'}</span>` : ''),
+      ];
+    }), i => openCustomer(rows[i].id)));
+  s.appendChild(card);
+  v.appendChild(s);
+}
+function openCustomer(cid){
+  const c = cust(cid);
+  const orders = customerOrders(cid).filter(o => o.status !== 'cancelled');
+  const v = $('#view'); v.innerHTML = '';
+  const back = el('button', 'btn ghost sm', '&larr; Customers');
+  back.style.marginBottom = '12px'; back.onclick = () => render();
+  v.appendChild(back);
+
+  const s = sec();
+  s.innerHTML = `
+    <div class="tiles">
+      ${tile('Total spent', TT(customerSpend(cid)), orders.length + ' orders')}
+      ${tile('Average order', TT(customerSpend(cid) / Math.max(1, orders.filter(o => o.status === 'confirmed').length)), '')}
+      ${tile('Store credit', TT(c.credit), c.credit ? 'to spend' : 'none')}
+      ${tile('Birthday', c.birthday ? dm(c.birthday.replace(/^\d{4}/, TODAY.getFullYear())) : '\u2014',
+        c.birthday ? 'in ' + daysToBirthday(c.birthday) + ' days' : '')}
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="two">
+        <label class="field"><span>Name</span><input value="${esc(c.name)}"></label>
+        <label class="field"><span>Instagram</span><input value="${esc(c.handle)}"></label>
+      </div>
+      <div class="two">
+        <label class="field"><span>WhatsApp</span><input value="${esc(c.phone)}"></label>
+        <label class="field"><span>Birthday</span><input type="date" value="${esc(c.birthday)}"></label>
+      </div>
+      <div class="two">
+        <label class="field"><span>Store credit</span><input type="number" value="${c.credit}"></label>
+        <label class="field"><span>Referral code</span><input value="${esc(c.referral || '')}"></label>
+      </div>
+      <label class="field"><span>Notes</span><textarea>${esc(c.notes || '')}</textarea></label>
+      <div class="btnrow"><button class="btn" id="cSave">Save</button></div>
+    </div>
+    <h2 style="font-family:var(--display);font-size:15px;margin:22px 0 10px">Purchase history</h2>`;
+  v.appendChild(s);
+  const hist = el('div', 'card');
+  if (!orders.length) hist.innerHTML = '<div class="empty"><div class="big">No orders yet</div></div>';
+  else hist.appendChild(table([{h:'Order'},{h:'Pieces'},{h:'Status'},{h:'Total',r:true}],
+    orders.map(o => [`<span class="xs dim">${esc(o.ref)}</span><br><span class="sm">${dm(o.date)}</span>`,
+      '<span class="sm">' + o.items.map(l => esc(l.name)).join(', ') + '</span>',
+      statusPill(o.status), `<span class="num">${TT(o.subtotal)}</span>`]),
+    i => openOrder(orders[i].id)));
+  v.appendChild(hist);
+  $('#cSave').onclick = () => toast('Sample data \u2014 resets on reload');
+}
+
+/* ---------- 5. Finances ---------- */
+let finTab = 'overview';
+function viewFinances(v){
+  const os = sold(), rev = revenue(os), cg = cogs(os);
+  const gross = rev - cg, running = opex(), net = gross - running;
+  const mo = monthly();
+
+  const s0 = sec();
+  s0.innerHTML = `<div class="tiles">
+    ${tile('Revenue', TT(rev), 'confirmed sales')}
+    ${tile('Cost of goods', TT(cg), 'what the stock cost')}
+    ${tile('Gross profit', TT(gross), pct(rev ? gross / rev * 100 : 0) + ' margin')}
+    ${tile('Net profit', TT(net), 'after ' + TT(running) + ' running costs')}
+  </div>`;
+  v.appendChild(s0);
+
+  const seg = el('div', 'segwrap');
+  seg.innerHTML = `<div class="seg">${[['overview','Overview'],['pl','Profit & loss'],
+    ['expenses','Expenses'],['cash','Cash flow'],['calc','What-if']]
+    .map(([k, l]) => `<button data-t="${k}" aria-selected="${finTab === k}">${l}</button>`).join('')}</div>`;
+  seg.querySelectorAll('button').forEach(b => b.onclick = () => { finTab = b.dataset.t; render(); });
+  v.appendChild(seg);
+
+  if (finTab === 'overview'){
+    const c = el('div', 'card');
+    c.innerHTML = `<h3 style="font-family:var(--display);font-size:14px;margin-bottom:9px">
+      Revenue, costs and profit</h3>` + lineChart(
+      [{ vals: mo.map(m => m.rev), color:'var(--pink-deep)' },
+       { vals: mo.map(m => m.cogs + m.ex), color:'var(--bad)' },
+       { vals: mo.map(m => Math.max(0, m.profit)), color:'var(--ink)' }],
+      { labels: mo.map(m => m.label), alt:'Revenue, costs, profit' }) +
+      `<div class="xs dim" style="margin-top:8px"><span style=\"color:var(--pink-deep)\">\u25cf</span> Revenue &nbsp;
+        <span style="color:var(--bad)">\u25cf</span> Costs &nbsp;
+        <span style="color:var(--ink)">\u25cf</span> Profit</div>`;
+    v.appendChild(c);
+
+    const byMethod = {};
+    os.forEach(o => byMethod[o.method] = (byMethod[o.method] || 0) + o.subtotal);
+    const c2 = el('div', 'card');
+    c2.innerHTML = `<h3 style="font-family:var(--display);font-size:14px;margin-bottom:11px">
+      How people pay</h3><div class="row" style="align-items:flex-start;flex-wrap:wrap">
+      ${donut(Object.entries(byMethod).map(([k, val], i) =>
+        ({ v: val, color: PIE[i % PIE.length] })), 'Payment methods')}
+      <div class="grow" style="min-width:170px">${Object.entries(byMethod)
+        .sort((a, b) => b[1] - a[1]).map(([k, val], i) => `<div class="between sm"
+          style="padding:5px 0;border-bottom:1px solid var(--line)">
+          <span><span style="color:${PIE[i % PIE.length]}">\u25cf</span> ${esc(k)}</span>
+          <span class="num">${TT(val)} \u00b7 ${pct(val / Math.max(1, rev) * 100)}</span></div>`).join('')}
+      </div></div>`;
+    v.appendChild(c2);
+  }
+
+  if (finTab === 'pl'){
+    const c = el('div', 'card');
+    const rowsPL = [
+      ['Revenue', rev, ''], ['Less cost of goods', -cg, ''],
+      ['Gross profit', gross, 'b'],
+      ...EXPENSE_CATS.filter(k => k !== 'Stock purchase').map(k =>
+        ['Less ' + k.toLowerCase(), -EXPENSES.filter(e => inPeriod(e.date) && e.cat === k)
+          .reduce((s, e) => s + e.amount, 0), '']),
+      ['Net profit', net, 'b'],
+    ];
+    c.appendChild(table([{h:'Profit and loss'},{h:'Amount',r:true}],
+      rowsPL.map(([k, val, b]) => [b ? `<b>${esc(k)}</b>` : `<span class="${
+        val < 0 ? 'dim' : ''}">${esc(k)}</span>`,
+        `<span class="num ${b ? '' : ''}" style="${val < 0 ? 'color:var(--dim)' : ''}">${
+          b ? '<b>' + TT(val) + '</b>' : TT(Math.abs(val))}</span>`])));
+    v.appendChild(c);
+  }
+
+  if (finTab === 'expenses'){
+    const byCat = {};
+    EXPENSES.filter(e => inPeriod(e.date)).forEach(e =>
+      byCat[e.cat] = (byCat[e.cat] || 0) + e.amount);
+    const c = el('div', 'card');
+    c.innerHTML = `<div class="between" style="margin-bottom:11px">
+      <h3 style="font-family:var(--display);font-size:14px">Where the money went</h3>
+      <span class="num sm dim">${TT(expenses())}</span></div>` +
+      Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, val]) =>
+        `<div style="padding:7px 0"><div class="between sm">
+          <span>${esc(k)}</span><span class="num">${TT(val)}</span></div>
+          <span class="bar"><i style="width:${Math.round(val / Math.max(...Object.values(byCat)) * 100)}%"></i></span>
+        </div>`).join('');
+    v.appendChild(c);
+
+    const recent = EXPENSES.filter(e => inPeriod(e.date))
+      .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 25);
+    const c2 = el('div', 'card');
+    c2.appendChild(table([{h:'Recent'},{h:'Category'},{h:'Amount',r:true}],
+      recent.map(e => [`<span class="sm">${dm(e.date)}</span>${e.note
+        ? `<br><span class="xs dim">${esc(e.note)}</span>` : ''}`,
+        `<span class="sm dim">${esc(e.cat)}</span>`, `<span class="num">${TT(e.amount)}</span>`])));
+    v.appendChild(c2);
+  }
+
+  if (finTab === 'cash'){
+    const c = el('div', 'card');
+    c.innerHTML = `<h3 style="font-family:var(--display);font-size:14px;margin-bottom:9px">
+      Money in, money out</h3>` +
+      barChart(mo.map(m => m.rev - m.cogs - m.ex), mo.map(m => m.label), 'Net cash by month') +
+      `<div class="xs dim" style="margin-top:8px">Each bar is that month\u2019s sales less everything
+       paid out. ${TT(cashAvailable())} on hand today.</div>`;
+    v.appendChild(c);
+    const c2 = el('div', 'card');
+    c2.appendChild(table([{h:'Month'},{h:'In',r:true},{h:'Out',r:true},{h:'Net',r:true}],
+      mo.slice().reverse().map(m => [esc(m.label), `<span class="num">${TT(m.rev)}</span>`,
+        `<span class="num dim">${TT(m.cogs + m.ex)}</span>`,
+        `<span class="num" style="color:${m.rev - m.cogs - m.ex >= 0
+          ? 'var(--good)' : 'var(--bad)'}">${TT(m.rev - m.cogs - m.ex)}</span>`])));
+    v.appendChild(c2);
+  }
+
+  if (finTab === 'calc'){
+    const c = el('div', 'card');
+    c.innerHTML = `
+      <h3 style="font-family:var(--display);font-size:14px;margin-bottom:4px">Will this piece earn?</h3>
+      <p class="sm dim" style="margin:0 0 13px">Work out a price before you commit to an order.</p>
+      <div class="two">
+        <label class="field"><span>Cost per piece</span><input type="number" id="wCost" value="180"></label>
+        <label class="field"><span>Price you\u2019d charge</span><input type="number" id="wPrice" value="450"></label>
+      </div>
+      <div class="two">
+        <label class="field"><span>How many you\u2019d buy</span><input type="number" id="wQty" value="12"></label>
+        <label class="field"><span>Shipping &amp; duty total</span><input type="number" id="wShip" value="700"></label>
+      </div>
+      <div id="wOut"></div>`;
+    v.appendChild(c);
+    const run = () => {
+      const cost = +$('#wCost').value || 0, price = +$('#wPrice').value || 0;
+      const qty = +$('#wQty').value || 0, ship = +$('#wShip').value || 0;
+      const landed = qty ? cost + ship / qty : cost;
+      const per = price - landed;
+      const margin = price ? (per / price) * 100 : 0;
+      const breakeven = per > 0 ? Math.ceil((cost * qty + ship) / price) : null;
+      $('#wOut').innerHTML = `<div class="tiles" style="margin-top:4px">
+        ${tile('Landed cost', TTc(landed), 'per piece, shipping included')}
+        ${tile('You keep', TTc(per), pct(margin) + ' margin')}
+        ${tile('Full order profit', TT(per * qty), 'if every piece sells')}
+        ${tile('Break even at', breakeven === null ? '\u2014' : breakeven + ' sold',
+          breakeven === null ? 'loses money at this price' : 'of ' + qty)}
+      </div>
+      <div class="note" style="margin-top:11px"><span>\u2661</span><span>${
+        margin >= 55 ? 'Healthy. Boutique pieces want 55% or better once shipping is in.'
+        : margin >= 40 ? 'Workable, but thin once a piece goes on sale.'
+        : 'Too thin. Raise the price or find it cheaper.'}</span></div>`;
+    };
+    ['#wCost','#wPrice','#wQty','#wShip'].forEach(id => $(id).oninput = run);
+    run();
+  }
+}
+
+/* ---------- 6. Cupids Closet ---------- */
+function viewCloset(v){
+  const own = CLOSET.filter(k => k.status === 'in wardrobe');
+  const paid = CLOSET.reduce((s, k) => s + k.paid, 0);
+  const wears = CLOSET.reduce((s, k) => s + k.wears, 0);
+  // Resale falls with wear: 55% of retail, less 1.5% a wear, floored at 20%.
+  const resale = k => Math.round(prod(k.pid).price *
+    Math.max(.2, .55 - k.wears * .015));
+  const resaleTotal = own.reduce((s, k) => s + resale(k), 0);
+  const credit = CLOSET.filter(k => k.status !== 'in wardrobe')
+    .reduce((s, k) => s + Math.round(resale(k) * 1.1), 0);
+
+  const s0 = sec();
+  s0.innerHTML = `<div class="tiles">
+    ${tile('In your wardrobe', own.length, 'of ' + CLOSET.length + ' ever')}
+    ${tile('Spent on yourself', TT(paid), '')}
+    ${tile('Worth if returned', TT(resaleTotal), 'as store credit')}
+    ${tile('Credit earned', TT(credit), CLOSET.filter(k => k.status !== 'in wardrobe').length + ' returned')}
+  </div>`;
+  v.appendChild(s0);
+
+  const cyc = sec('Wear \u2192 Return \u2192 Renew',
+    'Wear a piece, return it for credit, put the credit toward the next one.');
+  const cc = el('div', 'card');
+  const stages = [
+    { k:'Wearing',  n:own.length,
+      d:'Pieces in your wardrobe now' },
+    { k:'Returned', n:CLOSET.filter(k => k.status === 'returned').length,
+      d:'Handed back for credit' },
+    { k:'Renewed',  n:CLOSET.filter(k => k.status === 'renewed').length,
+      d:'Credit spent on something new' },
+  ];
+  cc.innerHTML = `<div class="grid3">${stages.map((s, i) => `
+    <div style="text-align:center;padding:6px 4px">
+      <div style="font-family:var(--display);font-size:28px">${s.n}</div>
+      <div class="pill ${i === 0 ? 'on' : ''}" style="margin:6px 0 7px">${esc(s.k)}</div>
+      <div class="xs dim">${esc(s.d)}</div>
+    </div>`).join('')}</div>
+    <div class="note" style="margin-top:12px"><span>\u2661</span><span>A piece returned at
+      <b>${TT(resaleTotal / Math.max(1, own.length))}</b> average credit puts most of its cost back
+      toward the next drop, instead of sitting unworn.</span></div>`;
+  cyc.appendChild(cc);
+  v.appendChild(cyc);
+
+  const s = sec('Your pieces');
+  const card = el('div', 'card');
+  card.appendChild(table(
+    [{h:'Piece'},{h:'Wears',r:true},{h:'Cost per wear',r:true},{h:'Worth now',r:true},{h:'Status'}],
+    CLOSET.map(k => {
+      const p = prod(k.pid);
+      return [
+        `<span class="trunc" style="display:block;max-width:170px">${esc(p.name)}</span>
+         <span class="xs dim">Since ${dm(k.bought)}</span>`,
+        `<span class="num">${k.wears}</span>`,
+        `<span class="num">${k.wears ? TTc(k.paid / k.wears) : '\u2014'}</span>`,
+        `<span class="num">${TT(resale(k))}</span>`,
+        statusPill(k.status === 'in wardrobe' ? 'packed' : 'received') +
+          ` <span class="xs dim">${esc(k.status)}</span>`,
+      ];
+    })));
+  s.appendChild(card);
+  v.appendChild(s);
+
+  const best = CLOSET.slice().sort((a, b) =>
+    (a.paid / Math.max(1, a.wears)) - (b.paid / Math.max(1, b.wears)))[0];
+  const note = sec();
+  note.innerHTML = `<div class="card"><h3 style="font-family:var(--display);font-size:14px">
+    Hardest working piece</h3><p class="sm" style="margin:7px 0 0">
+    <b>${esc(prod(best.pid).name)}</b> \u2014 ${best.wears} wears at
+    ${TTc(best.paid / best.wears)} a wear. Cheapest thing in your wardrobe per outing.</p></div>`;
+  v.appendChild(note);
+}
+
+/* ---------- 7. Marketing ---------- */
+function viewMarketing(v){
+  const spend = CAMPAIGNS.reduce((s, c) => s + c.spend, 0);
+  const made  = CAMPAIGNS.reduce((s, c) => s + c.revenue, 0);
+  const roas  = spend ? made / spend : 0;
+
+  const s0 = sec();
+  s0.innerHTML = `<div class="tiles">
+    ${tile('Ad spend', TT(spend), CAMPAIGNS.length + ' campaigns')}
+    ${tile('Revenue from ads', TT(made), '')}
+    ${tile('ROAS', roas.toFixed(1) + '\u00d7', roas >= 3 ? 'healthy' : 'watch this', roas >= 3 ? 'up' : 'down')}
+    ${tile('Cost per order', TT(spend / Math.max(1, Math.round(made / 650))), 'roughly')}
+  </div>`;
+  v.appendChild(s0);
+
+  const s = sec('Campaigns', 'A campaign under 2\u00d7 return is costing you money.');
+  const card = el('div', 'card');
+  card.appendChild(table(
+    [{h:'Campaign'},{h:'Spent',r:true},{h:'Made',r:true},{h:'Return',r:true},{h:'Code'}],
+    CAMPAIGNS.slice().sort((a, b) => (b.revenue / Math.max(1, b.spend)) -
+      (a.revenue / Math.max(1, a.spend))).map(c => {
+      const r = c.spend ? c.revenue / c.spend : Infinity;
+      return [
+        `<span class="trunc" style="display:block;max-width:180px">${esc(c.name)}</span>
+         <span class="xs dim">${esc(c.kind)} \u00b7 from ${dm(c.start)}</span>`,
+        `<span class="num">${c.spend ? TT(c.spend) : '\u2014'}</span>`,
+        `<span class="num">${TT(c.revenue)}</span>`,
+        c.spend ? `<span class="pill ${r >= 3 ? 'good' : r >= 2 ? 'warn' : 'bad'}">${
+          r.toFixed(1)}\u00d7</span>` : '<span class="pill good">Free</span>',
+        c.code ? `<span class="xs mono">${esc(c.code)}</span>` : '<span class="xs dim">\u2014</span>',
+      ];
+    })));
+  s.appendChild(card);
+  v.appendChild(s);
+
+  const weak = CAMPAIGNS.filter(c => c.spend && c.revenue / c.spend < 2);
+  if (weak.length){
+    const w = sec();
+    w.innerHTML = `<div class="card"><div class="note"><span>\u2661</span><span>
+      <b>${esc(weak.map(c => c.name).join(', '))}</b> ${weak.length === 1 ? 'is' : 'are'} returning
+      under 2\u00d7. That is ${TT(weak.reduce((s, c) => s + c.spend - c.revenue, 0))} behind.
+      Worth pausing or changing the creative.</span></div></div>`;
+    v.appendChild(w);
+  }
+
+  const cal = sec('Content calendar', 'What is going out next.');
+  const cc = el('div', 'card');
+  const plan = [
+    { d:1, what:'Thrift Thursday \u2014 6 pieces', where:'Instagram + Stories' },
+    { d:3, what:'Carnival preview reel',      where:'TikTok' },
+    { d:5, what:'Marina Bikini restock',      where:'Stories + email' },
+    { d:9, what:'Customer UGC repost',        where:'Instagram' },
+    { d:14, what:'Birthday month promo ends', where:'All channels' },
+  ];
+  cc.appendChild(table([{h:'When'},{h:'What'},{h:'Where'}],
+    plan.map(p => [`<span class="sm">${dm(daysAgo(-p.d))}</span>
+      <br><span class="xs dim">in ${p.d} day${p.d === 1 ? '' : 's'}</span>`,
+      esc(p.what), `<span class="sm dim">${esc(p.where)}</span>`])));
+  cal.appendChild(cc);
+  v.appendChild(cal);
+}
+
+/* ---------- 8. Analytics ---------- */
+function viewAnalytics(v){
+  const os = sold();
+  const perP = soldPerProduct(os);
+  const mo = monthly();
+
+  const bySub = {};
+  os.forEach(o => o.items.forEach(l => {
+    const p = prod(l.pid);
+    const k = p.thrift ? 'Thrift' : (SUBLABEL[p.sub] || p.sub);
+    bySub[k] = (bySub[k] || 0) + l.unit * l.qty;
+  }));
+  const total = Object.values(bySub).reduce((a, b) => a + b, 0) || 1;
+
+  const s0 = sec();
+  s0.innerHTML = `<div class="tiles">
+    ${tile('Pieces sold', unitsSold(os), 'this period')}
+    ${tile('Average order', TT(revenue(os) / Math.max(1, os.length)), os.length + ' orders')}
+    ${tile('Stock turn', (unitsSold(os) / Math.max(1, itemsRemaining())).toFixed(1) + '\u00d7',
+      'sold against stock held')}
+    ${tile('Repeat buyers', pct(CUSTOMERS.filter(c => customerOrders(c.id)
+      .filter(o => o.status === 'confirmed').length > 1).length / CUSTOMERS.length * 100),
+      'bought more than once')}
+  </div>`;
+  v.appendChild(s0);
+
+  const s1 = sec('Sales by category');
+  const c1 = el('div', 'card');
+  c1.innerHTML = `<div class="row" style="align-items:flex-start;flex-wrap:wrap">
+    ${donut(Object.entries(bySub).sort((a, b) => b[1] - a[1])
+      .map(([k, val], i) => ({ v: val, color: PIE[i % PIE.length] })), 'Sales by category')}
+    <div class="grow" style="min-width:180px">${Object.entries(bySub)
+      .sort((a, b) => b[1] - a[1]).map(([k, val], i) => `<div class="between sm"
+        style="padding:5px 0;border-bottom:1px solid var(--line)">
+        <span><span style="color:${PIE[i % PIE.length]}">\u25cf</span> ${esc(k)}</span>
+        <span class="num">${pct(val / total * 100)}</span></div>`).join('')}</div></div>`;
+  s1.appendChild(c1);
+  v.appendChild(s1);
+
+  const s2 = sec('Pieces sold each month');
+  const c2 = el('div', 'card');
+  c2.innerHTML = barChart(mo.map(m => m.units), mo.map(m => m.label), 'Units by month');
+  s2.appendChild(c2);
+  v.appendChild(s2);
+
+  const s3 = sec('What earns, what doesn\u2019t', 'Ranked by profit, not revenue.');
+  const c3 = el('div', 'card');
+  const ranked = Object.entries(perP).map(([pid, m]) =>
+    ({ p: prod(pid), ...m, profit: m.rev - m.cost }))
+    .sort((a, b) => b.profit - a.profit);
+  c3.appendChild(table([{h:'Piece'},{h:'Sold',r:true},{h:'Revenue',r:true},
+    {h:'Profit',r:true},{h:'Margin',r:true}],
+    ranked.slice(0, 10).map(r => [esc(r.p.name), `<span class="num">${r.qty}</span>`,
+      `<span class="num">${TT(r.rev)}</span>`,
+      `<span class="num">${TT(r.profit)}</span>`,
+      `<span class="num ${r.rev && r.profit / r.rev >= .55 ? '' : 'dim'}">${
+        pct(r.rev ? r.profit / r.rev * 100 : 0)}</span>`])));
+  s3.appendChild(c3);
+  v.appendChild(s3);
+
+  const dead = PRODUCTS.filter(p => stockOf(p) > 0 && p.added > 60 &&
+    (!perP[p.id] || perP[p.id].qty <= 1));
+  const s4 = sec('Sitting too long', 'In more than two months, barely moving.');
+  const c4 = el('div', 'card');
+  if (dead.length){
+    c4.appendChild(table([{h:'Piece'},{h:'In stock since'},{h:'Sold',r:true},{h:'Tied up',r:true}],
+      dead.map(p => [esc(p.name), `<span class="sm dim">${dm(daysAgo(p.added))}</span>`,
+        `<span class="num">${perP[p.id] ? perP[p.id].qty : 0}</span>`,
+        `<span class="num">${TT(stockOf(p) * p.cost)}</span>`])));
+    c4.appendChild(el('div', 'note', `<span>\u2661</span><span>
+      <b>${TT(dead.reduce((s, p) => s + stockOf(p) * p.cost, 0))}</b> of cash is sitting in these.
+      A markdown now frees it for stock that sells.</span>`));
+  } else c4.innerHTML = '<div class="empty"><div class="big">Everything is moving</div></div>';
+  s4.appendChild(c4);
+  v.appendChild(s4);
+}
+
+/* ---------- 9. Goals ---------- */
+function viewGoals(v){
+  const os = sold();
+  const actual = {
+    'Revenue': revenue(os),
+    'Net profit': revenue(os) - cogs(os) - opex(),
+    'Pieces sold': unitsSold(os),
+    'New customers': CUSTOMERS.filter(c => customerOrders(c.id).length).length,
+  };
+  const monthsIn = 10;                 // Jan\u2013Oct
+  const expected = 10 / 12;
+
+  const s0 = sec('This year', 'Pace shows whether you are ahead or behind for the date.');
+  v.appendChild(s0);
+
+  GOALS.forEach(g => {
+    const have = actual[g.what] || 0;
+    const doneP = Math.min(100, (have / g.target) * 100);
+    const pace = expected ? (have / g.target) / expected : 0;
+    const c = el('div', 'card');
+    c.innerHTML = `
+      <div class="between" style="margin-bottom:9px">
+        <div><div style="font-family:var(--display);font-size:16px">${esc(g.what)}</div>
+          <div class="xs dim">${esc(g.period)}</div></div>
+        <div style="text-align:right">
+          <div class="num" style="font-size:17px">${g.unit === 'money' ? TT(have) : have}</div>
+          <div class="xs dim">of ${g.unit === 'money' ? TT(g.target) : g.target}</div></div>
+      </div>
+      <span class="bar ${pace >= .95 ? 'good' : pace >= .8 ? 'warn' : ''}">
+        <i style="width:${Math.max(2, Math.round(doneP))}%"></i></span>
+      <div class="between xs" style="margin-top:7px">
+        <span class="dim">${pct(doneP)} of the way</span>
+        <span class="pill ${pace >= .95 ? 'good' : pace >= .8 ? 'warn' : 'bad'}">${
+          pace >= .95 ? 'Ahead of pace' : pace >= .8 ? 'Slightly behind' : 'Behind pace'}</span>
+      </div>
+      <div class="xs dim" style="margin-top:7px">Needs ${g.unit === 'money'
+        ? TT(Math.max(0, (g.target - have) / 2)) : Math.ceil(Math.max(0, (g.target - have) / 2))}
+        a month for the rest of the year.</div>`;
+    v.appendChild(c);
+  });
+
+  const add = sec('Set a goal');
+  const ac = el('div', 'card');
+  ac.innerHTML = `<div class="two">
+      <label class="field"><span>What to track</span><select>
+        <option>Revenue</option><option>Net profit</option>
+        <option>Pieces sold</option><option>New customers</option></select></label>
+      <label class="field"><span>Target</span><input type="number" placeholder="50000"></label>
+    </div>
+    <label class="field"><span>By when</span><select>
+      <option>This month</option><option>This quarter</option>
+      <option selected>This year</option></select></label>
+    <button class="btn" id="gAdd">Add goal</button>`;
+  add.appendChild(ac);
+  v.appendChild(add);
+  $('#gAdd').onclick = () => toast('Sample data \u2014 resets on reload');
+}
+
+/* ---------- 10. Suppliers & purchasing ---------- */
+function viewSuppliers(v){
+  const landed = po => {
+    const goods = po.items.reduce((s, i) => s + i.qty * i.unit, 0);
+    const units = po.items.reduce((s, i) => s + i.qty, 0);
+    return { goods, units, total: goods + po.shipping + po.duty,
+      per: units ? (goods + po.shipping + po.duty) / units : 0 };
+  };
+  const owing = POS.filter(p => p.paid !== 'paid')
+    .reduce((s, p) => s + landed(p).total * (p.paid === 'deposit' ? .5 : 1), 0);
+
+  const s0 = sec();
+  s0.innerHTML = `<div class="tiles">
+    ${tile('Suppliers', SUPPLIERS.length, '')}
+    ${tile('Open orders', POS.filter(p => p.status !== 'received').length, 'not yet received')}
+    ${tile('Owed to suppliers', TT(owing), 'still to pay')}
+    ${tile('Spent on stock', TT(POS.reduce((s, p) => s + landed(p).total, 0)), 'landed, all orders')}
+  </div>`;
+  v.appendChild(s0);
+
+  const s1 = sec('Purchase orders', 'Landed cost includes shipping and duty \u2014 the number that matters.');
+  const c1 = el('div', 'card');
+  c1.appendChild(table(
+    [{h:'Order'},{h:'Pieces',r:true},{h:'Landed cost',r:true},{h:'Per piece',r:true},
+     {h:'Status'},{h:'Paid'}],
+    POS.map(po => {
+      const L = landed(po), sup = SUPPLIERS.find(x => x.id === po.supplier);
+      return [
+        `<span class="trunc" style="display:block;max-width:170px">${esc(sup.name)}</span>
+         <span class="xs dim">Placed ${dm(po.placed)} \u00b7 due ${dm(po.expected)}</span>`,
+        `<span class="num">${L.units}</span>`,
+        `<span class="num">${TT(L.total)}</span>`,
+        `<span class="num">${TTc(L.per)}</span>`,
+        statusPill(po.status), statusPill(po.paid),
+      ];
+    }), i => openPO(POS[i].id)));
+  s1.appendChild(c1);
+  v.appendChild(s1);
+
+  const s2 = sec('Suppliers');
+  const c2 = el('div', 'card');
+  c2.appendChild(table([{h:'Supplier'},{h:'Lead time',r:true},{h:'Terms'},{h:'Orders',r:true}],
+    SUPPLIERS.map(sp => [
+      `<span class="trunc" style="display:block">${esc(sp.name)}</span>
+       <span class="xs dim">${esc(sp.country)} \u00b7 ${esc(sp.contact)}</span>`,
+      `<span class="num">${sp.lead}d</span>`,
+      `<span class="sm dim">${esc(sp.terms)}</span>`,
+      `<span class="num">${POS.filter(p => p.supplier === sp.id).length}</span>`])));
+  s2.appendChild(c2);
+  v.appendChild(s2);
+}
+function openPO(id){
+  const po = POS.find(p => p.id === id);
+  const sup = SUPPLIERS.find(s => s.id === po.supplier);
+  const goods = po.items.reduce((s, i) => s + i.qty * i.unit, 0);
+  const units = po.items.reduce((s, i) => s + i.qty, 0);
+  const total = goods + po.shipping + po.duty;
+  const v = $('#view'); v.innerHTML = '';
+  const back = el('button', 'btn ghost sm', '&larr; Suppliers');
+  back.style.marginBottom = '12px'; back.onclick = () => render();
+  v.appendChild(back);
+  const s = sec();
+  s.innerHTML = `<div class="card">
+    <div class="between"><div>
+      <div style="font-family:var(--display);font-size:17px">${esc(sup.name)}</div>
+      <div class="sm dim">Placed ${dmy(po.placed)} \u00b7 expected ${dmy(po.expected)}</div></div>
+      <div style="text-align:right">${statusPill(po.status)}<br>${statusPill(po.paid)}</div></div>
+    <div class="tablewrap" style="margin-top:14px"><table><tbody>
+      ${po.items.map(i => `<tr><td>${esc(i.name)}
+        <span class="xs dim">\u00d7 ${i.qty} at ${TT(i.unit)}</span></td>
+        <td class="r num">${TT(i.qty * i.unit)}</td></tr>`).join('')}
+      <tr><td class="dim">Goods</td><td class="r num">${TT(goods)}</td></tr>
+      <tr><td class="dim">Shipping</td><td class="r num">${TT(po.shipping)}</td></tr>
+      <tr><td class="dim">Duty</td><td class="r num">${TT(po.duty)}</td></tr>
+      <tr><td><b>Landed total</b></td><td class="r num"><b>${TT(total)}</b></td></tr>
+      <tr><td><b>Landed per piece</b></td><td class="r num"><b>${TTc(total / units)}</b></td></tr>
+    </tbody></table></div>
+    <div class="note" style="margin-top:12px"><span>\u2661</span><span>Shipping and duty add
+      <b>${TTc((po.shipping + po.duty) / units)}</b> to every piece. Price off
+      ${TTc(total / units)}, not ${TTc(goods / units)}.</span></div>
+    <div class="btnrow" style="margin-top:13px">
+      <button class="btn" id="poRecv">Mark received</button>
+      <button class="btn ghost" id="poPay">Record payment</button></div></div>`;
+  v.appendChild(s);
+  $('#poRecv').onclick = () => toast('Sample data \u2014 resets on reload');
+  $('#poPay').onclick  = () => toast('Sample data \u2014 resets on reload');
+}
+
+/* ---------- 11. Settings ---------- */
+function viewSettings(v){
+  const s = sec('Business');
+  const c = el('div', 'card');
+  c.innerHTML = `
+    <div class="two">
+      <label class="field"><span>Business name</span><input value="${esc(SETTINGS.business)}"></label>
+      <label class="field"><span>Your name</span><input value="${esc(SETTINGS.owner)}"></label>
+    </div>
+    <div class="two">
+      <label class="field"><span>Email</span><input value="${esc(SETTINGS.email)}"></label>
+      <label class="field"><span>WhatsApp</span><input value="${esc(SETTINGS.whatsapp)}"></label>
+    </div>
+    <label class="field"><span>Country</span><input value="${esc(SETTINGS.country)}"></label>`;
+  s.appendChild(c);
+  v.appendChild(s);
+
+  const s2 = sec('Currency and tax');
+  const c2 = el('div', 'card');
+  c2.innerHTML = `<div class="two">
+      <label class="field"><span>Main currency</span><select>
+        <option selected>TTD</option><option>USD</option></select></label>
+      <label class="field"><span>US rate</span><input type="number" step="0.01" value="${SETTINGS.usd}"></label>
+    </div>
+    <label class="field"><span>VAT %</span><input type="number" step="0.1" value="${SETTINGS.vat}"></label>
+    <div class="note"><span>\u2661</span><span>Prices show in TTD with USD underneath,
+      converted at ${SETTINGS.usd} to the dollar.</span></div>`;
+  s2.appendChild(c2);
+  v.appendChild(s2);
+
+  const s3 = sec('Delivery');
+  const c3 = el('div', 'card');
+  c3.innerHTML = `<div class="two">
+      <label class="field"><span>Free delivery over</span>
+        <input type="number" value="${SETTINGS.freeDelivery}"></label>
+      <label class="field"><span>Free for VIP over</span>
+        <input type="number" value="${SETTINGS.freeDeliveryVip}"></label>
+    </div>
+    <label class="field"><span>Standard fee</span>
+      <input type="number" value="${SETTINGS.deliveryFee}"></label>`;
+  s3.appendChild(c3);
+  v.appendChild(s3);
+
+  const s4 = sec('Payment methods');
+  const c4 = el('div', 'card');
+  c4.innerHTML = SETTINGS.methods.map(m => `<div class="between sm"
+    style="padding:8px 0;border-bottom:1px solid var(--line)">
+    <span>${esc(m)}</span><span class="pill good">On</span></div>`).join('');
+  s4.appendChild(c4);
+  v.appendChild(s4);
+
+  const s5 = sec('Expense categories');
+  const c5 = el('div', 'card');
+  c5.innerHTML = `<div class="btnrow">${SETTINGS.expenseCats.map(k =>
+    `<span class="pill">${esc(k)}</span>`).join('')}</div>`;
+  s5.appendChild(c5);
+  v.appendChild(s5);
+
+  const s6 = sec('Who has access');
+  const c6 = el('div', 'card');
+  c6.innerHTML = SETTINGS.roles.map(r => `<div class="between sm"
+    style="padding:9px 0;border-bottom:1px solid var(--line)">
+    <span>${esc(r.who)}</span><span class="dim xs">${esc(r.role)}</span></div>`).join('') +
+    `<div class="btnrow" style="margin-top:12px">
+      <button class="btn ghost sm" id="sInvite">Invite someone</button></div>`;
+  s6.appendChild(c6);
+  v.appendChild(s6);
+
+  const s7 = sec('Appearance');
+  const c7 = el('div', 'card');
+  c7.innerHTML = `<label class="field"><span>Theme</span><select id="sTheme">
+    <option value="">Follow my device</option>
+    <option value="light">Always light</option>
+    <option value="dark">Always dark</option></select></label>`;
+  s7.appendChild(c7);
+  v.appendChild(s7);
+  $('#sTheme').value = document.documentElement.getAttribute('data-theme') || '';
+  $('#sTheme').onchange = e => {
+    if (e.target.value) document.documentElement.setAttribute('data-theme', e.target.value);
+    else document.documentElement.removeAttribute('data-theme');
+    toast('Theme changed');
+  };
+  $('#sInvite').onclick = () => toast('Comes with the real database');
+
+  const s8 = sec();
+  s8.innerHTML = `<div class="card"><div class="note"><span>\u2661</span><span>
+    <b>This is a prototype.</b> Every figure is worked out from sample stock, orders and
+    customers built into the page, so the screens agree with each other \u2014 but it is not
+    your real shop. Changes reset when you reload.</span></div></div>`;
+  v.appendChild(s8);
+}
+
+/* ===================== boot ===================== */
+$('#menuBtn').onclick = () => document.body.classList.toggle('navopen');
+$('#scrim').onclick   = () => document.body.classList.remove('navopen');
+$('#period').onchange = e => { PERIOD = Number(e.target.value); render(); };
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.body.classList.remove('navopen');
+});
+buildNav();
+render();
+</script>
+</body>
+</html>
